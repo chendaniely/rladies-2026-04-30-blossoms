@@ -571,7 +571,7 @@
     "href": "index.html#where-claude-code-helped",
     "title": "Vancouver Cherry Blossoms",
     "section": "Where Claude Code Helped",
-    "text": "Where Claude Code Helped\nClaude Code helped throughout:\n\nMap aesthetics - described what I wanted, it wrote the {mapgl} layers\nGoogle Maps URLs - split 30-stop tour into 3 legs of 10; shareable links\nOSRM fallback - street data had geometry issues; Claude found OSRM as an alternative\nCode comments - “why” not just “what”\nPorting analysis to slides - scripts → slide-friendly code chunks\nThese slides - structure, submodule wiring, Kyle Walker shout-out\n\n\n\n\n\n\n\nThe code is not the hard part\n\n\nAI can write the code. What it cannot do: ask the right question, recognize a wrong result, or know which assumption to challenge next. That is the skill worth building."
+    "text": "Where Claude Code Helped\nClaude Code helped throughout:\n\nMap aesthetics - described what I wanted, it wrote the {mapgl} layers\nGoogle Maps URLs - split 30-stop tour into 3 legs of 10; shareable links\nOSRM fallback - street data had geometry issues; Claude found OSRM as an alternative\nCode comments - “why” not just “what”\nPorting analysis to slides - scripts → slide-friendly code chunks\nThese slides - structure, submodule wiring, Kyle Walker shout-out\nASCII diagrams - mock up flow and structure diagrams\n\nCan also use Quarto + Mermaid diagrams\n\n\n\n\n\n\n\n\nThe code is not the hard part\n\n\nAI can write the code. What it cannot do: ask the right question, recognize a wrong result, or know which assumption to challenge next. That is the skill worth building."
   },
   {
     "objectID": "index.html#open-data-is-amazing",
@@ -585,7 +585,7 @@
     "href": "index.html#sharing-results-with-quarto",
     "title": "Vancouver Cherry Blossoms",
     "section": "Sharing Results with Quarto",
-    "text": "Sharing Results with Quarto\nSame R code → blog post via Quarto + GitHub Pages\n\n\n\nInteractive maps embedded directly\nGPX download links\nNo R required to read it\nAnalysis repo, talk, and blog are all Quarto documents\n\n\nThe Quarto stack\nanalysis.R\n  ↓\nresults/README.qmd   ← blog post source\n  ↓ quarto render\ndocs/index.html      ← GitHub Pages\nWant to learn more? Grace’s talk from last month covers exactly this.\n\n\n\nBlog: chendaniely.github.io/posts/2026/2026-03-30-yvr-cherry-blossoms-marathon/"
+    "text": "Sharing Results with Quarto\nSame R code → blog post via Quarto + GitHub Pages\n\n\n\nInteractive maps embedded directly\nGPX download links\nNo R required to read it\nAnalysis repo, talk, and blog are all Quarto documents\n\n\nThe Quarto stack\nanalysis.R\n  ↓\nresults/README.qmd   ← blog post source\n  ↓ quarto render\ndocs/index.html      ← GitHub Pages\nGrace’s talk from last month covers exactly this.\n\n\n\nBlog: chendaniely.github.io/posts/2026/2026-03-30-yvr-cherry-blossoms-marathon/"
   },
   {
     "objectID": "index.html#appreciating-city-planners",

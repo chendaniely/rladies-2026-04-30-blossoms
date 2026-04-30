@@ -1782,6 +1782,10 @@ Geodetic CRS:  WGS 84
 <li><strong>Code comments</strong> - “why” not just “what”</li>
 <li><strong>Porting analysis to slides</strong> - scripts → slide-friendly code chunks</li>
 <li><strong>These slides</strong> - structure, submodule wiring, Kyle Walker shout-out</li>
+<li><strong>ASCII diagrams</strong> - mock up flow and structure diagrams
+<ul>
+<li>Can also use Quarto + <a href="https://quarto.org/docs/authoring/diagrams.html">Mermaid diagrams</a></li>
+</ul></li>
 </ul>
 <div class="callout callout-important callout-titled callout-style-default">
 <div class="callout-body">
@@ -1825,7 +1829,7 @@ Geodetic CRS:  WGS 84
 results/README.qmd   ← blog post source
   ↓ quarto render
 docs/index.html      ← GitHub Pages</code></pre>
-<p>Want to learn more? <a href="https://www.meetup.com/rladies-vancouver/events/313107321/">Grace’s talk</a> from last month covers exactly this.</p>
+<p><a href="https://www.meetup.com/rladies-vancouver/events/313107321/">Grace’s talk</a> from last month covers exactly this.</p>
 </div></div>
 
 <aside><div>
@@ -2210,7 +2214,7 @@ docs/index.html      ← GitHub Pages</code></pre>
         }
           var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
           var mailtoRegex = new RegExp(/^mailto:/);
-            var filterRegex = new RegExp('/' + window.location.host + '/');
+            var filterRegex = new RegExp("https:\/\/chendaniely\.github\.io\/rladies-2026-04-30-blossoms\/");
           var isInternal = (href) => {
               return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
           }
