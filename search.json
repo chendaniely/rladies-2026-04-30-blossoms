@@ -2,609 +2,609 @@
   {
     "objectID": "index.html#motivation",
     "href": "index.html#motivation",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Motivation",
     "text": "Motivation\n\nEvery spring Vancouver gets buried in cherry blossoms\nThe Vancouver Cherry Blossom Festival runs ~March 27 – April 17\nBut which streets are actually worth visiting?\nAnd could you see the best of them in a single run?"
   },
   {
     "objectID": "index.html#the-goal",
     "href": "index.html#the-goal",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Goal",
     "text": "The Goal\n\nFind all Japanese flowering cherry trees in Vancouver\nIdentify the streets (and neighbourhoods) with the highest density\nBuild an optimized route to visit the top streets in one trip\n\nAll code: https://github.com/chendaniely/yvr-cherry-blossoms"
   },
   {
     "objectID": "index.html#the-full-pipeline",
     "href": "index.html#the-full-pipeline",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Full Pipeline",
     "text": "The Full Pipeline\ndata/original/          ← Vancouver Open Data (raw GeoJSON)\n    ↓ code/01-clean/\ndata/final/             ← cherry_blossoms.geojson, streets.geojson\n    ↓ code/02-street_tree/\ndata/processed/         ← snapped-tree-street.geojson, streets_counted.geojson\n    ↓ results/street_results/README.qmd\ndata/processed/         ← top30_streets.geojson\n    ↓ results/tsp_route/README.qmd + code/03-routes/gpx_export.R\ndata/routes/            ← 4 GPX files\nmake data      # run all R cleaning + analysis scripts\nmake results   # render all Quarto result pages\nmake routes    # generate GPX files"
   },
   {
     "objectID": "index.html#shout-out-kyle-walker-phd",
     "href": "index.html#shout-out-kyle-walker-phd",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Shout Out: Kyle Walker, PhD",
     "text": "Shout Out: Kyle Walker, PhD\nThe project that started it all:\n\n\nKyle Walker — great R packages for spatial work:\n\n{tidycensus}, {tigris}, {crsuggest}\n{mapgl} - every interactive map in this talk\n\nThen I saw this post:\n\n“New in the spopt-r #rstats package: route optimization. Solve the classic Traveling Salesman Problem for a single driver or optimize a fleet by solving the Vehicle Routing Problem.”\n\n\nFind Kyle:\n\nwalker-data.com\nLinkedIn\n\n{spopt} - R route optimization:\n\nLinkedIn announcement\nRouting vignette"
   },
   {
     "objectID": "index.html#outline",
     "href": "index.html#outline",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Outline",
     "text": "Outline\n\n\nSetup\n\nGIS concepts review\nVancouver Open Data Portal\nThe tree & street data\n\n\nAnalysis\n\nBuilding the initial map\nNeighbourhood-level questions\nStreet-level density\nRoute optimization"
   },
   {
     "objectID": "index.html#previous-r-ladies-talks",
     "href": "index.html#previous-r-ladies-talks",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Previous R-Ladies Talks",
     "text": "Previous R-Ladies Talks\n\n\n\n\n\n\n\nCreate Custom Webpages with R and Quarto - Grace (March 2026)\n\n\nR-Ladies YVR · Meetup event\n\n\n\n\n\n\n\n\n\n\n\nIntro to Spatial Data in R - Véronique & Johannes (2025)\n\n\nR-Ladies YVR · Meetup event\n\n\n\n\nIf you missed those talks - this section is a quick refresher on the GIS concepts we’ll use today."
   },
   {
     "objectID": "index.html#what-is-gis",
     "href": "index.html#what-is-gis",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "What is GIS?",
     "text": "What is GIS?\nGeographic Information System - tools for capturing, storing, analyzing spatial data\n\n\nVector data (what we use today)\n\nPoints - individual trees 🌸\nLines - street segments 🛣️\nPolygons - neighbourhoods 🗺️\n\n\nRaster data (not today)\n\nGrids of pixels\nSatellite imagery, elevation\n{terra}, {stars}"
   },
   {
     "objectID": "index.html#coordinate-reference-systems",
     "href": "index.html#coordinate-reference-systems",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Coordinate Reference Systems",
     "text": "Coordinate Reference Systems\nEvery spatial dataset needs a CRS - defines how coordinates map to Earth’s surface\n\nlibrary(sf)\n\n# WGS84 - latitude/longitude (degrees) - good for display\ntrees &lt;- st_read(\"submodule/yvr-cherry-blossoms/data/original/public-trees.geojson\")\n\n\n\n\n\n\n\n\nWarning\n\n\nMix up your CRS and you’ll get wrong results with no error message."
   },
   {
     "objectID": "index.html#coordinate-reference-systems-output",
     "href": "index.html#coordinate-reference-systems-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Coordinate Reference Systems",
     "text": "Coordinate Reference Systems\n\nReading layer `public-trees' from data source \n  `/Users/dan/git/hub/rladies-2026-04-30-blossoms/submodule/yvr-cherry-blossoms/data/original/public-trees.geojson' \n  using driver `GeoJSON'\nreplacing null geometries with empty geometries\nSimple feature collection with 186342 features and 11 fields (with 1 geometry empty)\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: -123.2367 ymin: 49.2002 xmax: -123.0233 ymax: 49.30998\nGeodetic CRS:  WGS 84\n\nst_crs(trees)  # EPSG:4326\n\nCoordinate Reference System:\n  User input: WGS 84 \n  wkt:\nGEOGCRS[\"WGS 84\",\n    DATUM[\"World Geodetic System 1984\",\n        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n            LENGTHUNIT[\"metre\",1]]],\n    PRIMEM[\"Greenwich\",0,\n        ANGLEUNIT[\"degree\",0.0174532925199433]],\n    CS[ellipsoidal,2],\n        AXIS[\"geodetic latitude (Lat)\",north,\n            ORDER[1],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        AXIS[\"geodetic longitude (Lon)\",east,\n            ORDER[2],\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n    ID[\"EPSG\",4326]]\n\n# UTM Zone 10N - metres - good for distance calculations\ntrees_utm &lt;- st_transform(trees, 32610)"
   },
   {
     "objectID": "index.html#crs-alphanumeric-soup",
     "href": "index.html#crs-alphanumeric-soup",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "CRS Alphanumeric Soup",
     "text": "CRS Alphanumeric Soup\n\n\nEPSG:4326 = WGS84\n\nEPSG - a registry of named coordinate systems (like a phone book for CRS)\n4326 - the ID for WGS84 in that registry\nWGS84 - the actual name: World Geodetic System 1984\nWhat you get: lat/lon in degrees, used by GPS, Google Maps, GeoJSON\n\n\nEPSG:32610 = UTM Zone 10N\n\n32610 - EPSG ID for UTM Zone 10N (covers BC/Pacific Northwest)\nUTM - Universal Transverse Mercator, a family of projected systems\nZone 10N - the specific slice of the globe (Vancouver falls here)\nWhat you get: X/Y in metres - essential for distance calculations\n\n\n\n\n\n\n\n\nTip\n\n\nRule of thumb: use 4326 for display/storage, 32610 for anything involving distance or area in BC."
   },
   {
     "objectID": "index.html#key-sf-operations-well-use",
     "href": "index.html#key-sf-operations-well-use",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Key {sf} Operations We’ll Use",
     "text": "Key {sf} Operations We’ll Use\n\n\n\nFunction\nWhat it does\n\n\n\n\nst_read()\nLoad geojson / shapefile / etc\n\n\nst_transform()\nReproject to a new CRS\n\n\nst_nearest_feature()\nSnap each point to closest line\n\n\nst_length()\nLength of line in CRS units\n\n\nst_join()\nSpatial join (like SQL JOIN but spatial)\n\n\nst_buffer()\nBuffer geometries by a distance\n\n\nst_union()\nMerge geometries together"
   },
   {
     "objectID": "index.html#key-r-packages",
     "href": "index.html#key-r-packages",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Key R Packages",
     "text": "Key R Packages\n\nlibrary(sf)          # spatial data I/O and operations\nlibrary(dplyr)       # data manipulation\nlibrary(mapgl)       # interactive maps (MapLibre GL)\nlibrary(sfnetworks)  # street/graph networks\nlibrary(igraph)      # graph algorithms (TSP cost matrix)\nlibrary(spopt)       # route optimization (TSP solver)\nlibrary(osmdata)     # OpenStreetMap data queries"
   },
   {
     "objectID": "index.html#key-r-packages-output",
     "href": "index.html#key-r-packages-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Key R Packages",
     "text": "Key R Packages"
   },
   {
     "objectID": "index.html#opendata.vancouver.ca",
     "href": "index.html#opendata.vancouver.ca",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "opendata.vancouver.ca",
     "text": "opendata.vancouver.ca\nhttps://opendata.vancouver.ca/pages/home/\nThe City of Vancouver publishes hundreds of datasets under open licenses:\n\nTrees, parks, bike lanes, zoning, permits, 3D buildings…\n\nWe’ll use 5 datasets today:\n\n\n\nDataset\nFormat\nWhat it contains\n\n\n\n\npublic-trees\nGeoJSON\nAll ~150k city trees\n\n\npublic-streets\nGeoJSON\nCity-maintained streets\n\n\nnon-city-streets\nGeoJSON\nPrivate/strata streets\n\n\nlanes\nGeoJSON\nLane segments\n\n\nlocal-area-boundary\nGeoJSON\n22 neighbourhood polygons"
   },
   {
     "objectID": "index.html#reading-the-data",
     "href": "index.html#reading-the-data",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Reading the Data",
     "text": "Reading the Data\n\nlibrary(sf)\n\n# All datasets are GeoJSON - sf reads them directly\ntrees        &lt;- st_read(\"submodule/yvr-cherry-blossoms/data/original/public-trees.geojson\")\n\n\n\nglimpse(trees)"
   },
   {
     "objectID": "index.html#reading-the-data-output",
     "href": "index.html#reading-the-data-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Reading the Data",
     "text": "Reading the Data\n\nReading layer `public-trees' from data source \n  `/Users/dan/git/hub/rladies-2026-04-30-blossoms/submodule/yvr-cherry-blossoms/data/original/public-trees.geojson' \n  using driver `GeoJSON'\nreplacing null geometries with empty geometries\nSimple feature collection with 186342 features and 11 fields (with 1 geometry empty)\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: -123.2367 ymin: 49.2002 xmax: -123.0233 ymax: 49.30998\nGeodetic CRS:  WGS 84\n\nstreets_city &lt;- st_read(\"submodule/yvr-cherry-blossoms/data/original/public-streets.geojson\")\n\nReading layer `public-streets' from data source \n  `/Users/dan/git/hub/rladies-2026-04-30-blossoms/submodule/yvr-cherry-blossoms/data/original/public-streets.geojson' \n  using driver `GeoJSON'\nSimple feature collection with 17067 features and 3 fields\nGeometry type: MULTILINESTRING\nDimension:     XY\nBounding box:  xmin: -123.2248 ymin: 49.20032 xmax: -123.0233 ymax: 49.2945\nGeodetic CRS:  WGS 84\n\nstreets_priv &lt;- st_read(\"submodule/yvr-cherry-blossoms/data/original/non-city-streets.geojson\")\n\nReading layer `non-city-streets' from data source \n  `/Users/dan/git/hub/rladies-2026-04-30-blossoms/submodule/yvr-cherry-blossoms/data/original/non-city-streets.geojson' \n  using driver `GeoJSON'\nSimple feature collection with 952 features and 4 fields\nGeometry type: LINESTRING\nDimension:     XY\nBounding box:  xmin: -123.2299 ymin: 49.19895 xmax: -123.0124 ymax: 49.31404\nGeodetic CRS:  WGS 84\n\nlanes        &lt;- st_read(\"submodule/yvr-cherry-blossoms/data/original/lanes.geojson\")\n\nReading layer `lanes' from data source \n  `/Users/dan/git/hub/rladies-2026-04-30-blossoms/submodule/yvr-cherry-blossoms/data/original/lanes.geojson' \n  using driver `GeoJSON'\nSimple feature collection with 7851 features and 3 fields\nGeometry type: LINESTRING\nDimension:     XY\nBounding box:  xmin: -123.2223 ymin: 49.20096 xmax: -123.0233 ymax: 49.29374\nGeodetic CRS:  WGS 84\n\nneighbourhoods &lt;- st_read(\"submodule/yvr-cherry-blossoms/data/original/local-area-boundary.geojson\")\n\nReading layer `local-area-boundary' from data source \n  `/Users/dan/git/hub/rladies-2026-04-30-blossoms/submodule/yvr-cherry-blossoms/data/original/local-area-boundary.geojson' \n  using driver `GeoJSON'\nSimple feature collection with 22 features and 2 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: -123.2248 ymin: 49.19894 xmax: -123.0232 ymax: 49.29581\nGeodetic CRS:  WGS 84"
   },
   {
     "objectID": "index.html#which-trees-are-cherry-blossoms",
     "href": "index.html#which-trees-are-cherry-blossoms",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Which Trees Are Cherry Blossoms?",
     "text": "Which Trees Are Cherry Blossoms?\n150k+ trees in the dataset - most are not cherry blossoms.\n\n\n\n\n\n\nNote\n\n\nI had no idea there were so many different kinds of cherry blossom trees!\n\n\n\nStrategy: filter common_name for trees that mention “cherry” AND (“japanese” OR “flower”)\n\n\nlibrary(stringr)\n\ncherry_names &lt;- unique(trees$common_name)[\n  str_detect(unique(trees$common_name), \"cherry|CHERRY\")\n]\n\njap_flower_cherry &lt;- cherry_names[\n  str_detect(cherry_names, \"JAP|jap|FLOWER|flower\")\n]\n\njap_flower_cherry\n\n\n\nScript: code/01-clean/cherry_blossoms.R"
   },
   {
     "objectID": "index.html#which-trees-are-cherry-blossoms-output",
     "href": "index.html#which-trees-are-cherry-blossoms-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Which Trees Are Cherry Blossoms?",
     "text": "Which Trees Are Cherry Blossoms?\n\n [1] \"KWANZAN FLOWERING CHERRY\"       \"AKEBONO FLOWERING CHERRY\"      \n [3] \"SARGENT FLOWERING CHERRY\"       \"JAPANESE FLOWERING CHERRY\"     \n [5] \"UKON JAPANESE CHERRY\"           \"AMANOGAWA JAPANESE CHERRY\"     \n [7] \"WEEPING JAPANESE CHERRY\"        NA                              \n [9] \"OJOCHIN JAPANESE CHERRY\"        \"SHOGETSU JAPANESE CHERRY\"      \n[11] \"DOUBLE WEEPING JAPANESE CHERRY\""
   },
   {
     "objectID": "index.html#filtering-the-trees",
     "href": "index.html#filtering-the-trees",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Filtering the Trees",
     "text": "Filtering the Trees\n\ncherry_blossoms &lt;- trees |&gt;\n  filter(common_name %in% jap_flower_cherry) |&gt;\n  mutate(\n    age_years = as.numeric(\n      difftime(Sys.Date(), as.Date(date_planted), units = \"days\")\n    ) / 365.25\n  )\n\nnrow(cherry_blossoms)  # ~3,500 trees\n\n\n10 species found:\n\nJAPANESE FLOWERING CHERRY\nAKEBONO FLOWERING CHERRY\nKWANZAN FLOWERING CHERRY\n… and more"
   },
   {
     "objectID": "index.html#filtering-the-trees-output",
     "href": "index.html#filtering-the-trees-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Filtering the Trees",
     "text": "Filtering the Trees\n\n[1] 14992"
   },
   {
     "objectID": "index.html#data-quality-a-frustration",
     "href": "index.html#data-quality-a-frustration",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Data Quality: A Frustration",
     "text": "Data Quality: A Frustration\nMature trees are more reliable bloomers. Filter by age?\n\n# How complete is date_planted?\ncherry_blossoms |&gt;\n  summarise(\n    n           = n(),\n    has_date    = sum(!is.na(date_planted)),\n    pct_missing = mean(is.na(date_planted)) * 100\n  )\n\n\n  n     has_date  pct_missing\n  3521  979       72.2\n\n\n\n\n\n\nWarning\n\n\n72% of trees have no planting date - age filtering is off the table."
   },
   {
     "objectID": "index.html#data-quality-a-frustration-output",
     "href": "index.html#data-quality-a-frustration-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Data Quality: A Frustration",
     "text": "Data Quality: A Frustration\n\nSimple feature collection with 1 feature and 3 fields\nGeometry type: MULTIPOINT\nDimension:     XY\nBounding box:  xmin: -123.2319 ymin: 49.20477 xmax: -123.0236 ymax: 49.30261\nGeodetic CRS:  WGS 84\n      n has_date pct_missing                       geometry\n1 14992     4113    72.56537 MULTIPOINT ((-123.0256 49.2..."
   },
   {
     "objectID": "index.html#falling-back-to-size-proxies",
     "href": "index.html#falling-back-to-size-proxies",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Falling Back to Size Proxies",
     "text": "Falling Back to Size Proxies\nHeight and diameter are fully recorded - use them as size stand-ins:\n\n# 100% complete\ncherry_blossoms |&gt;\n  summarise(\n    pct_height   = mean(!is.na(height_m))   * 100,  # 100%\n    pct_diameter = mean(!is.na(diameter_cm)) * 100   # 100%\n  )\n\n\n\n# Thresholds (based on domain knowledge of Japanese flowering cherries)\nmin_height_m   &lt;- 2.5   # metres\nmin_diameter_cm &lt;- 7    # cm trunk diameter\n\n# NOTE: in the final analysis, even filtering by these thresholds\n# changes the result very little - most trees pass. We keep all trees.\nblooming_trees &lt;- cherry_blossoms"
   },
   {
     "objectID": "index.html#falling-back-to-size-proxies-output",
     "href": "index.html#falling-back-to-size-proxies-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Falling Back to Size Proxies",
     "text": "Falling Back to Size Proxies\n\nSimple feature collection with 1 feature and 2 fields\nGeometry type: MULTIPOINT\nDimension:     XY\nBounding box:  xmin: -123.2319 ymin: 49.20477 xmax: -123.0236 ymax: 49.30261\nGeodetic CRS:  WGS 84\n  pct_height pct_diameter                       geometry\n1        100          100 MULTIPOINT ((-123.0256 49.2..."
   },
   {
     "objectID": "index.html#the-street-data",
     "href": "index.html#the-street-data",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Street Data",
     "text": "The Street Data\nThree sources - combine them into one dataset:\n\nstreets_pub &lt;- st_read(\n  \"submodule/yvr-cherry-blossoms/data/original/public-streets.geojson\",\n  quiet = TRUE\n) |&gt; st_transform(4326) |&gt;\n  mutate(street_type = \"Public\", street_label = hblock)\n\nstreets_non &lt;- st_read(\n  \"submodule/yvr-cherry-blossoms/data/original/non-city-streets.geojson\",\n  quiet = TRUE\n) |&gt; st_transform(4326) |&gt;\n  mutate(\n    street_type = \"Non-city\",\n    street_label = if_else(\n      !is.na(from_hblk) & from_hblk != \"\",\n      paste(from_hblk, streetname), streetname\n    )\n  )\n\nstreets_lan &lt;- st_read(\n  \"submodule/yvr-cherry-blossoms/data/original/lanes.geojson\",\n  quiet = TRUE\n) |&gt; st_transform(4326) |&gt;\n  mutate(street_type = \"Lane\",\n         street_label = paste(from_hundred_block, std_street))\n\nstreets &lt;- bind_rows(streets_pub, streets_non, streets_lan)\nnrow(streets)\n\n\nNote: each street is stored as individual block-level segments\n\n\nScript: code/01-clean/streets.R"
   },
   {
     "objectID": "index.html#the-street-data-output",
     "href": "index.html#the-street-data-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Street Data",
     "text": "The Street Data\n\n[1] 25870"
   },
   {
     "objectID": "index.html#first-map-where-are-the-trees",
     "href": "index.html#first-map-where-are-the-trees",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "First Map: Where Are the Trees?",
     "text": "First Map: Where Are the Trees?\nStart simple - plot all cherry blossom trees with {mapgl}\n\nlibrary(mapgl)\n\nmaplibre(\n  style = openfreemap_style(\"bright\"),\n  bounds = neighbourhoods\n) |&gt;\n  add_circle_layer(\n    id     = \"trees\",\n    source = cherry_blossoms,\n    circle_radius  = 3,\n    circle_color   = \"#e879a0\",\n    circle_opacity = 0.6\n  )"
   },
   {
     "objectID": "index.html#first-map-where-are-the-trees-output",
     "href": "index.html#first-map-where-are-the-trees-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "First Map: Where Are the Trees?",
     "text": "First Map: Where Are the Trees?"
   },
   {
     "objectID": "index.html#adding-neighbourhood-boundaries",
     "href": "index.html#adding-neighbourhood-boundaries",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Adding Neighbourhood Boundaries",
     "text": "Adding Neighbourhood Boundaries\n\nmaplibre(\n  style = openfreemap_style(\"bright\"),\n  bounds = neighbourhoods\n) |&gt;\n  add_line_layer(\n    id         = \"neighbourhood-borders\",\n    source     = neighbourhoods,\n    line_color = \"#d97706\",\n    line_width = 1.5,\n    line_opacity = 0.8\n  ) |&gt;\n  add_circle_layer(\n    id     = \"trees\",\n    source = cherry_blossoms,\n    circle_radius  = 3,\n    circle_color   = \"#e879a0\",\n    circle_opacity = 0.6\n  )"
   },
   {
     "objectID": "index.html#adding-neighbourhood-boundaries-output",
     "href": "index.html#adding-neighbourhood-boundaries-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Adding Neighbourhood Boundaries",
     "text": "Adding Neighbourhood Boundaries"
   },
   {
     "objectID": "index.html#all-cherry-blossoms-by-species",
     "href": "index.html#all-cherry-blossoms-by-species",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "All Cherry Blossoms by Species",
     "text": "All Cherry Blossoms by Species\n\ntree_variety_names &lt;- sort(unique(cherry_blossoms$common_name))\ntree_variety_colors &lt;- colorRampPalette(\n  c(\"#e879a0\", \"#a855f7\", \"#3b82f6\", \"#10b981\", \"#f59e0b\")\n)(length(tree_variety_names))\n\nmaplibre(\n  style  = openfreemap_style(\"bright\"),\n  bounds = cherry_blossoms\n) |&gt;\n  add_circle_layer(\n    id     = \"trees\",\n    source = cherry_blossoms,\n    circle_color = match_expr(\n      column = \"common_name\",\n      values = tree_variety_names,\n      stops  = tree_variety_colors\n    ),\n    circle_opacity = 0.7,\n    tooltip = concat(\"&lt;b&gt;\", get_column(\"common_name\"), \"&lt;/b&gt;\")\n  ) |&gt;\n  add_categorical_legend(\n    legend_title = \"Tree variety\",\n    values       = tree_variety_names,\n    colors       = tree_variety_colors,\n    patch_shape  = \"circle\"\n  )"
   },
   {
     "objectID": "index.html#all-cherry-blossoms-by-species-output",
     "href": "index.html#all-cherry-blossoms-by-species-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "All Cherry Blossoms by Species",
     "text": "All Cherry Blossoms by Species"
   },
   {
     "objectID": "index.html#which-neighbourhood-has-most",
     "href": "index.html#which-neighbourhood-has-most",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Which Neighbourhood Has Most?",
     "text": "Which Neighbourhood Has Most?\nWe need to spatially join trees to neighbourhoods, then count:\n\ntree_counts &lt;- st_join(\n  cherry_blossoms,\n  neighbourhoods |&gt; select(neighbourhood = name),\n  join = st_within   # tree must fall INSIDE neighbourhood polygon\n) |&gt;\n  st_drop_geometry() |&gt;\n  count(neighbourhood, name = \"tree_count\")\n\nneighbourhoods &lt;- neighbourhoods |&gt;\n  left_join(tree_counts, by = c(\"name\" = \"neighbourhood\")) |&gt;\n  mutate(tree_count = replace_na(tree_count, 0))"
   },
   {
     "objectID": "index.html#which-neighbourhood-has-most-output",
     "href": "index.html#which-neighbourhood-has-most-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Which Neighbourhood Has Most?",
     "text": "Which Neighbourhood Has Most?"
   },
   {
     "objectID": "index.html#raw-count-vs-density",
     "href": "index.html#raw-count-vs-density",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Raw Count vs Density",
     "text": "Raw Count vs Density\nRaw count favours large neighbourhoods. Normalize by area:\n\nneighbourhoods &lt;- neighbourhoods |&gt;\n  mutate(\n    area_km2     = as.numeric(st_area(geometry)) / 1e6,\n    trees_per_km2 = tree_count / area_km2\n  )\n\n\n\n\nTop by raw count\nKitsilano, Hastings-Sunrise, Sunset…\n\nTop by density\nMount Pleasant (!)"
   },
   {
     "objectID": "index.html#raw-count-vs-density-output",
     "href": "index.html#raw-count-vs-density-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Raw Count vs Density",
     "text": "Raw Count vs Density"
   },
   {
     "objectID": "index.html#the-neighbourhood-choropleth",
     "href": "index.html#the-neighbourhood-choropleth",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Neighbourhood Choropleth",
     "text": "The Neighbourhood Choropleth\n\nmaplibre(style = openfreemap_style(\"bright\"), bounds = neighbourhoods) |&gt;\n  add_fill_layer(\n    id     = \"neighbourhood-density\",\n    source = neighbourhoods,\n    fill_color = interpolate(\n      column = \"trees_per_km2\",\n      values = c(0, median(neighbourhoods$trees_per_km2),\n                    max(neighbourhoods$trees_per_km2)),\n      stops  = c(\"#f7fcf0\", \"#41ab5d\", \"#00441b\")\n    ),\n    fill_opacity = 0.75,\n    tooltip = \"tooltip_text\"\n  )"
   },
   {
     "objectID": "index.html#the-neighbourhood-choropleth-output",
     "href": "index.html#the-neighbourhood-choropleth-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Neighbourhood Choropleth",
     "text": "The Neighbourhood Choropleth"
   },
   {
     "objectID": "index.html#surprising-finding-1",
     "href": "index.html#surprising-finding-1",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Surprising Finding #1",
     "text": "Surprising Finding #1\n\nMount Pleasant = highest density neighbourhood\n\n\nDavid Lam Park (Downtown) = where the Festival is held\n\nWhy the paradox?\n\nDowntown is geographically massive\nTrees are concentrated in one small park\nDensity = trees ÷ area → big area = low density\nBut Mount Pleasant has trees spread across many residential streets"
   },
   {
     "objectID": "index.html#which-streets-are-best",
     "href": "index.html#which-streets-are-best",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Which Streets Are Best?",
     "text": "Which Streets Are Best?\nNeighbourhoods give the overview - the actual experience is at street level.\n\nWhere do I take my mom?\n\n\nWhere can folks take photos?\n\n\nWhere are the hidden local gems?\n\n\nAssign each tree to its nearest street segment\nCount trees per segment\nNormalize by length → trees per 100m\nRank and map"
   },
   {
     "objectID": "index.html#example-snapping---toy-setup",
     "href": "index.html#example-snapping---toy-setup",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: Snapping - Toy Setup",
     "text": "Example: Snapping - Toy Setup\nBuild a mini version with 4 streets and 9 trees:\n\nstreet_colors &lt;- c(\n  \"Oak St\"     = \"#e76f51\",\n  \"Elm Ave\"    = \"#2a9d8f\",\n  \"Cedar Rd\"   = \"#457b9d\",\n  \"Maple Blvd\" = \"#9b5de5\"\n)\n\nstreets_toy &lt;- st_sf(\n  id   = 1:4,\n  name = c(\"Oak St\", \"Elm Ave\", \"Cedar Rd\", \"Maple Blvd\"),\n  geometry = st_sfc(\n    st_linestring(rbind(c(0, 0),  c(10, 0))),   # horizontal\n    st_linestring(rbind(c(0, 8),  c(10, 8))),   # horizontal (upper)\n    st_linestring(rbind(c(5, -1), c(5, 10))),   # vertical\n    st_linestring(rbind(c(0, 5),  c(4, 10))),   # diagonal\n    crs = 4326\n  )\n)\n\ntrees_toy &lt;- st_sf(\n  id = 1:9,\n  geometry = st_sfc(\n    st_point(c(1, -1.2)), st_point(c(3, 1.0)), st_point(c(7, -0.8)),\n    st_point(c(2, 4.0)),  st_point(c(8, 4.5)), st_point(c(3, 7.0)),\n    st_point(c(6, 9.2)),  st_point(c(9, 6.5)), st_point(c(4.5, 3.5)),\n    crs = 4326\n  )\n)"
   },
   {
     "objectID": "index.html#example-snapping---toy-setup-output",
     "href": "index.html#example-snapping---toy-setup-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: Snapping - Toy Setup",
     "text": "Example: Snapping - Toy Setup"
   },
   {
     "objectID": "index.html#example-before-snapping",
     "href": "index.html#example-before-snapping",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: Before Snapping",
     "text": "Example: Before Snapping\n\nggplot() +\n  geom_sf(data = streets_toy, aes(color = name), linewidth = 2.5) +\n  geom_sf_text(\n    data = streets_toy,\n    aes(label = name, color = name),\n    size = 3.5, show.legend = FALSE\n  ) +\n  geom_sf(data = trees_toy, size = 4, shape = 16, color = \"grey30\") +\n  scale_color_manual(values = street_colors, name = \"Street\") +\n  labs(\n    title    = \"Streets and trees (before snapping)\",\n    subtitle = \"Which street does each point belong to?\"\n  ) +\n  theme_minimal() +\n  theme(legend.position = \"bottom\")"
   },
   {
     "objectID": "index.html#example-before-snapping-output",
     "href": "index.html#example-before-snapping-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: Before Snapping",
     "text": "Example: Before Snapping"
   },
   {
     "objectID": "index.html#example-the-snap-operation",
     "href": "index.html#example-the-snap-operation",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: The Snap Operation",
     "text": "Example: The Snap Operation\n\n# One call assigns every tree to its nearest street\nnearest_idx &lt;- st_nearest_feature(trees_toy, streets_toy)\n\ntrees_toy &lt;- trees_toy |&gt;\n  mutate(\n    nearest_street_id   = nearest_idx,\n    nearest_street_name = streets_toy$name[nearest_idx]\n  )\n\ntree_counts_toy &lt;- trees_toy |&gt;\n  st_drop_geometry() |&gt;\n  count(nearest_street_id, nearest_street_name, name = \"tree_count\")\n\nprint(tree_counts_toy)"
   },
   {
     "objectID": "index.html#example-the-snap-operation-output",
     "href": "index.html#example-the-snap-operation-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: The Snap Operation",
     "text": "Example: The Snap Operation\n\n  nearest_street_id nearest_street_name tree_count\n1                 1              Oak St          3\n2                 2             Elm Ave          2\n3                 3            Cedar Rd          3\n4                 4          Maple Blvd          1"
   },
   {
     "objectID": "index.html#example-after-snapping",
     "href": "index.html#example-after-snapping",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: After Snapping",
     "text": "Example: After Snapping\n\nsnap_lines &lt;- trees_toy |&gt;\n  mutate(\n    geometry = st_sfc(\n      map2(\n        geometry,\n        streets_toy$geometry[nearest_street_id],\n        ~ st_nearest_points(st_sfc(.x, crs = 4326), st_sfc(.y, crs = 4326))[[1]]\n      ),\n      crs = 4326\n    )\n  )\n\nggplot() +\n  geom_sf(data = streets_toy, aes(color = name), linewidth = 2.5) +\n  geom_sf(data = snap_lines, color = \"grey55\", linetype = \"dashed\", linewidth = 0.6) +\n  geom_sf(data = trees_toy, aes(color = nearest_street_name), size = 4, shape = 16) +\n  geom_sf_label(\n    data = left_join(streets_toy, tree_counts_toy, by = c(\"id\" = \"nearest_street_id\")),\n    aes(label = paste0(name, \"\\n(\", tree_count, \" trees)\"), color = name),\n    size = 3.5, nudge_y = -1.2, show.legend = FALSE\n  ) +\n  scale_color_manual(values = street_colors, name = \"Nearest street\") +\n  labs(\n    title    = \"Snapping points to nearest line segment\",\n    subtitle = \"Dashed lines show each point's assignment to its closest street\"\n  ) +\n  theme_minimal() +\n  theme(legend.position = \"bottom\")"
   },
   {
     "objectID": "index.html#example-after-snapping-output",
     "href": "index.html#example-after-snapping-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: After Snapping",
     "text": "Example: After Snapping"
   },
   {
     "objectID": "index.html#snapping-trees-to-streets",
     "href": "index.html#snapping-trees-to-streets",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Snapping Trees to Streets",
     "text": "Snapping Trees to Streets\nst_nearest_feature() returns the index of the nearest feature - one call for all 3,500 trees:\n\n\n# One function call assigns every tree to its nearest street\nnearest_idx &lt;- st_nearest_feature(cherry_blossoms, streets)\n\nsnapped &lt;- cherry_blossoms |&gt;\n  mutate(\n    street_id    = nearest_idx,\n    street_label = streets$street_label[nearest_idx],\n    street_type  = streets$street_type[nearest_idx]\n  )\n\n\n\n\n\n\n\n\nNote\n\n\nUses a spatial index under the hood - 3,500 trees × 50,000+ segments runs in seconds.\n\n\n\n\nScript: code/02-street_tree/snap_trees_to_streets.R"
   },
   {
     "objectID": "index.html#snapping-trees-to-streets-output",
     "href": "index.html#snapping-trees-to-streets-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Snapping Trees to Streets",
     "text": "Snapping Trees to Streets"
   },
   {
     "objectID": "index.html#counting-trees-per-segment",
     "href": "index.html#counting-trees-per-segment",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Counting Trees per Segment",
     "text": "Counting Trees per Segment\n\n\ntree_counts &lt;- snapped |&gt;\n  st_drop_geometry() |&gt;\n  count(street_id, street_label, street_type,\n        name = \"tree_count\")\n\nstreets_joined &lt;- streets |&gt;\n  mutate(street_id = row_number()) |&gt;\n  left_join(tree_counts, by = \"street_id\")\n\n# drop duplicate .y columns, rename .x → clean names, then compute length/density\nstreets_counted &lt;- streets_joined |&gt;\n  select(-street_label.y, -street_type.y) |&gt;\n  rename(street_label = street_label.x, street_type = street_type.x) |&gt;\n  mutate(\n    tree_count = replace_na(tree_count, 0),\n    length_m   = as.numeric(st_length(geometry)),\n    density    = tree_count / length_m * 100   # trees per 100m\n  )\n\n\n\nScript: code/02-street_tree/street_analysis.R"
   },
   {
     "objectID": "index.html#counting-trees-per-segment-output",
     "href": "index.html#counting-trees-per-segment-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Counting Trees per Segment",
     "text": "Counting Trees per Segment"
   },
   {
     "objectID": "index.html#data-integrity-check",
     "href": "index.html#data-integrity-check",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Data Integrity Check",
     "text": "Data Integrity Check\nAfter the join, verify labels are consistent across segments:\n\nlabel_mismatches &lt;- streets_joined |&gt;\n  st_drop_geometry() |&gt;\n  filter(!is.na(street_label.y)) |&gt;\n  filter(street_label.x != street_label.y)\n\nif (nrow(label_mismatches) &gt; 0) {\n  warning(sprintf(\n    \"%d segment(s) have mismatched labels - re-run clean scripts\",\n    nrow(label_mismatches)\n  ))\n} else {\n  message(\"street_label check passed ✓\")\n}\n\n\n\n\n\n\n\n\nTip\n\n\nAlways validate spatial joins - silent mismatches are common."
   },
   {
     "objectID": "index.html#data-integrity-check-output",
     "href": "index.html#data-integrity-check-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Data Integrity Check",
     "text": "Data Integrity Check"
   },
   {
     "objectID": "index.html#example-block-level-segments",
     "href": "index.html#example-block-level-segments",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: Block-Level Segments",
     "text": "Example: Block-Level Segments\nOne “street” in the data is many separate block segments - pick one to see:\n\none_street &lt;- streets |&gt;\n  filter(std_street == \"GRANVILLE ST\") |&gt;\n  mutate(\n    segment_id    = row_number(),\n    segment_color = rep(\n      c(\"#e76f51\", \"#2a9d8f\", \"#457b9d\", \"#9b5de5\"),\n      length.out = n()\n    )\n  )\n\ncat(\"Granville St has\", nrow(one_street), \"separate segments\\n\")\n\n\n\n\n\n\n\n\nNote\n\n\nEach colour is a separate row in the data - that’s why we need to aggregate before ranking streets."
   },
   {
     "objectID": "index.html#example-block-level-segments-output",
     "href": "index.html#example-block-level-segments-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Example: Block-Level Segments",
     "text": "Example: Block-Level Segments\n\nGranville St has 82 separate segments\n\nmaplibre(bounds = one_street) |&gt;\n  add_line_layer(\n    id     = \"segments\",\n    source = one_street,\n    line_color = get_column(\"segment_color\"),\n    line_width = 5,\n    tooltip = concat(\n      \"Segment \", get_column(\"segment_id\"), \": \", get_column(\"street_label\")\n    )\n  )"
   },
   {
     "objectID": "index.html#aggregating-to-street-level",
     "href": "index.html#aggregating-to-street-level",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Aggregating to Street Level",
     "text": "Aggregating to Street Level\nEach street has multiple block segments. Union them to see the whole street:\n\n# summary table (no geometry - used for ranking)\nstreet_summary &lt;- streets_counted |&gt;\n  st_drop_geometry() |&gt;\n  filter(tree_count &gt; 0) |&gt;\n  group_by(street_label, street_type) |&gt;\n  summarise(\n    total_trees  = sum(tree_count),\n    total_length = sum(length_m),\n    n_segments   = n(),\n    .groups = \"drop\"\n  ) |&gt;\n  mutate(density = total_trees / total_length * 100)\n\n# spatial version (geometry needed for mapping)\nstreets_sf &lt;- streets_counted |&gt;\n  filter(tree_count &gt; 0) |&gt;\n  group_by(street_label, street_type) |&gt;\n  summarise(\n    total_trees  = sum(tree_count),\n    total_length = sum(length_m),\n    density      = sum(tree_count) / sum(length_m) * 100,\n    geometry     = st_union(geometry),\n    .groups = \"drop\"\n  )"
   },
   {
     "objectID": "index.html#aggregating-to-street-level-output",
     "href": "index.html#aggregating-to-street-level-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Aggregating to Street Level",
     "text": "Aggregating to Street Level"
   },
   {
     "objectID": "index.html#top-streets",
     "href": "index.html#top-streets",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Top Streets",
     "text": "Top Streets\n\n# Top by raw count\ntop_by_count &lt;- street_summary |&gt;\n  slice_max(total_trees, n = 20)\n\n# Top by density - require ≥5 trees to suppress short stubs\n# (a single tree on a 5m dead-end = 2000 trees/100m, meaningless)\ntop_by_density &lt;- street_summary |&gt;\n  filter(total_trees &gt;= 5) |&gt;\n  slice_max(density, n = 30)\n\n\n\n\n\n\n\n\nImportant\n\n\nWithout total_trees &gt;= 5, a single tree on a 5m dead-end alley tops the rankings at 2,000 trees/100m."
   },
   {
     "objectID": "index.html#top-streets-output",
     "href": "index.html#top-streets-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Top Streets",
     "text": "Top Streets"
   },
   {
     "objectID": "index.html#the-top-30-streets-map",
     "href": "index.html#the-top-30-streets-map",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Top 30 Streets Map",
     "text": "The Top 30 Streets Map\n\nmaplibre(style = openfreemap_style(\"bright\"), bounds = top30_stops) |&gt;\n  add_line_layer(\n    id     = \"streets-density\",\n    source = streets_dense,\n    line_color = interpolate(\n      column = \"density\",\n      values = c(0, median(streets_dense$density),\n                    max(streets_dense$density)),\n      stops  = c(\"#edf8e9\", \"#74c476\", \"#00441b\")\n    ),\n    line_width = interpolate(\n      column = \"density\",\n      values = c(0, max(streets_dense$density)),\n      stops  = c(1.5, 6)\n    ),\n    popup = concat(\n      \"&lt;b&gt;\", get_column(\"street_label\"), \"&lt;/b&gt;&lt;br/&gt;\",\n      \"Trees / 100m: \", number_format(get_column(\"density\"), 1)\n    )\n  )"
   },
   {
     "objectID": "index.html#the-top-30-streets-map-output",
     "href": "index.html#the-top-30-streets-map-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Top 30 Streets Map",
     "text": "The Top 30 Streets Map"
   },
   {
     "objectID": "index.html#surprising-finding-2",
     "href": "index.html#surprising-finding-2",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Surprising Finding #2",
     "text": "Surprising Finding #2\n\nMount Pleasant has the highest neighbourhood density\n\n\nbut none of the top 30 densest streets\n\nWhy? Mount Pleasant trees are spread across many streets - great for wandering, but no single street is exceptionally dense.\nThe top streets cluster in West End / Yaletown, Kerrisdale, and East Vancouver."
   },
   {
     "objectID": "index.html#the-top-10-streets",
     "href": "index.html#the-top-10-streets",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Top 10 Streets",
     "text": "The Top 10 Streets\n\n\n\n#\nStreet\nTrees / 100m\nTotal Trees\n\n\n\n\n1\n1400 HOMER ST\n27.5\n53\n\n\n2\n100 DRAKE ST\n22.0\n25\n\n\n3\n600 GILFORD ST\n22.4\n13\n\n\n4\n600 CHILCO ST\n24.6\n16\n\n\n5\n4500 BALACLAVA ST\n22.7\n12\n\n\n6\n2400 W 41ST AV\n24.4\n25\n\n\n7\n400 W 33RD AV\n20.5\n18\n\n\n8\n200 W 37TH AV\n21.6\n21\n\n\n9\n800 SALSBURY DRIVE\n22.0\n11\n\n\n10\n3100 RUPERT ST\n19.3\n18"
   },
   {
     "objectID": "index.html#travelling-salesperson-problem",
     "href": "index.html#travelling-salesperson-problem",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Travelling Salesperson Problem",
     "text": "Travelling Salesperson Problem\n\n\nGiven N stops, find the shortest route visiting each exactly once.\n\nNP-hard exactly - heuristics for anything practical\n{spopt} by Kyle Walker: nearest-neighbour seed + 2-opt/or-opt improvement\nKey input: a cost matrix of distances or travel times between every pair of stops\n\n10 stops → 10! / 2 = 1,814,400 possible routes\n\n\n\n\n\n{spopt} routing vignette · Script: code/03-routes/gpx_export.R"
   },
   {
     "objectID": "index.html#running-the-tsp",
     "href": "index.html#running-the-tsp",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Running the TSP",
     "text": "Running the TSP\n\ncoords &lt;- st_coordinates(top10_stops)\ncost_matrix &lt;- as.matrix(dist(coords))  # Euclidean - fast, good for prototyping\n\nresult &lt;- route_tsp(\n  top10_stops,\n  start       = 1,     # Homer St (#1 ranked)\n  end         = NULL,  # open route - no return to start\n  cost_matrix = cost_matrix\n)\n\nmeta &lt;- attr(result, \"spopt\")\ncat(sprintf(\"Improvement over nearest-neighbour: %.1f%%\\n\", meta$improvement_pct))"
   },
   {
     "objectID": "index.html#running-the-tsp-output",
     "href": "index.html#running-the-tsp-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Running the TSP",
     "text": "Running the TSP\n\nImprovement over nearest-neighbour: 16.8%\n\nstops_ordered &lt;- result |&gt;\n  filter(!is.na(.visit_order)) |&gt;\n  arrange(.visit_order)\nstops_ordered |&gt; select(street_label, .visit_order)\n\nSimple feature collection with 10 features and 2 fields\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: -123.1757 ymin: 49.23468 xmax: -123.0338 ymax: 49.2943\nGeodetic CRS:  WGS 84\n         street_label .visit_order                   geometry\n1       1400 HOMER ST            1 POINT (-123.1262 49.27227)\n2        100 DRAKE ST            2 POINT (-123.1231 49.27308)\n3      600 GILFORD ST            3   POINT (-123.135 49.2938)\n4       600 CHILCO ST            4   POINT (-123.137 49.2943)\n5   4500 BALACLAVA ST            5 POINT (-123.1757 49.24542)\n6      2400 W 41ST AV            6  POINT (-123.162 49.23468)\n7       400 W 33RD AV            7 POINT (-123.1163 49.24101)\n8       200 W 37TH AV            8 POINT (-123.1112 49.23711)\n9  800 SALSBURY DRIVE            9 POINT (-123.0684 49.27731)\n10     3100 RUPERT ST           10 POINT (-123.0338 49.25599)"
   },
   {
     "objectID": "index.html#routing-geometry-was-off",
     "href": "index.html#routing-geometry-was-off",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Routing Geometry Was Off",
     "text": "Routing Geometry Was Off\nroute_tsp() returns the stop order - not the road paths between stops.\nDrawing the actual route requires geometry connecting each stop in sequence.\n\n\nWhat I tried\nBuild a road network from Vancouver street segments + sfnetworks, compute shortest paths, connect the dots\n\nWhat happened\nRoutes didn’t follow roads - lines cut through blocks, missed turns, looked wrong"
   },
   {
     "objectID": "index.html#why-street-data-routing-data",
     "href": "index.html#why-street-data-routing-data",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Why? Street Data ≠ Routing Data",
     "text": "Why? Street Data ≠ Routing Data\n\nVancouver open data: block-level records - built for spatial joins, not routing\nTried full OpenStreetMap data - still had issues\nGaps in network topology, or geometry too messy for a DIY routing engine\n\nThe lesson: routing is a solved problem. Don’t rebuild it from scratch."
   },
   {
     "objectID": "index.html#osrm-to-the-rescue",
     "href": "index.html#osrm-to-the-rescue",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "OSRM to the Rescue",
     "text": "OSRM to the Rescue\nTSP gives the order - OSRM gives actual road geometry:\n\nlibrary(httr)\n\nosrm_route &lt;- function(stops_sf, profile = \"foot\") {\n  coords &lt;- st_coordinates(stops_sf)\n  coord_str &lt;- paste(\n    sprintf(\"%.6f,%.6f\", coords[, 1], coords[, 2]),\n    collapse = \";\"\n  )\n  url &lt;- sprintf(\n    \"https://router.project-osrm.org/route/v1/%s/%s?overview=full&geometries=geojson\",\n    profile, coord_str\n  )\n  content(GET(url))$routes[[1]]\n}\n\n\nProfiles: \"foot\" (sidewalks + paths) · \"bike\" (cycle lanes preferred)"
   },
   {
     "objectID": "index.html#osrm-to-the-rescue-output",
     "href": "index.html#osrm-to-the-rescue-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "OSRM to the Rescue",
     "text": "OSRM to the Rescue"
   },
   {
     "objectID": "index.html#gpx-export",
     "href": "index.html#gpx-export",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "GPX Export",
     "text": "GPX Export\nMake the route portable - Garmin, Strava, Komoot, AllTrails:\n\nlibrary(xml2)\n\nwrite_gpx &lt;- function(stops_sf, track_coords, name, path) {\n  doc &lt;- xml_new_root(\"gpx\", version = \"1.1\",\n    creator = \"yvr-cherry-blossoms\",\n    xmlns   = \"http://www.topografix.com/GPX/1/1\")\n\n  pts &lt;- st_coordinates(stops_sf)\n  for (i in seq_len(nrow(stops_sf))) {\n    wpt &lt;- xml_add_child(doc, \"wpt\",\n      lat = sprintf(\"%.6f\", pts[i, 2]),\n      lon = sprintf(\"%.6f\", pts[i, 1]))\n    xml_add_child(wpt, \"name\",\n      sprintf(\"Stop %d - %s\", i, stops_sf$street_label[i]))\n  }\n  # ... track points from OSRM geometry added here\n  write_xml(doc, path)\n}"
   },
   {
     "objectID": "index.html#gpx-export-output",
     "href": "index.html#gpx-export-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "GPX Export",
     "text": "GPX Export"
   },
   {
     "objectID": "index.html#cherry-blossom-marathon-route",
     "href": "index.html#cherry-blossom-marathon-route",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Cherry Blossom Marathon Route",
     "text": "Cherry Blossom Marathon Route\nTop 10 stops · 23.4 km (14.5 miles) straight-line · ~35 km road-following\n\nTop 10 cherry blossom marathon route\nI named this the “Vancouver Cherry Blossom Marathon” - you heard it here first! The route starts at David Lam Park (where the Cherry Blossom Festival is held) and connects the 10 densest cherry blossom streets."
   },
   {
     "objectID": "index.html#for-cyclists-the-grand-tour",
     "href": "index.html#for-cyclists-the-grand-tour",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "For Cyclists: The Grand Tour",
     "text": "For Cyclists: The Grand Tour\nTop 30 stops · 34.7 km (21.6 miles) straight-line\nGoogle Maps limits routes to 10 stops - split into 3 legs:\n\nbike_stops &lt;- tsp_result_30 |&gt;\n  filter(!is.na(.visit_order)) |&gt;\n  arrange(.visit_order) |&gt;\n  mutate(leg = ceiling(row_number() / 10))  # legs 1, 2, 3\n\n# Generate Google Maps URL per leg\ngoogle_maps_url &lt;- function(stops_sf) {\n  stops_sf$google_address |&gt;            # \"HOMER ST, Vancouver, BC\"\n    URLencode(reserved = TRUE) |&gt;\n    paste(collapse = \"/\") |&gt;\n    paste0(\"https://www.google.com/maps/dir/\", x = _)\n}\n\nurls &lt;- lapply(1:3, \\(i) google_maps_url(filter(bike_stops, leg == i)))\nurls[[1]]"
   },
   {
     "objectID": "index.html#for-cyclists-the-grand-tour-output",
     "href": "index.html#for-cyclists-the-grand-tour-output",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "For Cyclists: The Grand Tour",
     "text": "For Cyclists: The Grand Tour\n\n[1] \"https://www.google.com/maps/dir/1400%20HOMER%20ST%2C%20Vancouver%2C%20BC/100%20DRAKE%20ST%2C%20Vancouver%2C%20BC/600%20CHILCO%20ST%2C%20Vancouver%2C%20BC/600%20GILFORD%20ST%2C%20Vancouver%2C%20BC/1000%20MELVILLE%20ST%2C%20Vancouver%2C%20BC/800%20SALSBURY%20DRIVE%2C%20Vancouver%2C%20BC/2500%20OXFORD%20ST%2C%20Vancouver%2C%20BC/3000%20E%202ND%20AV%2C%20Vancouver%2C%20BC/3000%20E%207TH%20AV%2C%20Vancouver%2C%20BC/2600%20E%2022ND%20AV%2C%20Vancouver%2C%20BC\""
   },
   {
     "objectID": "index.html#i-actually-ran-it",
     "href": "index.html#i-actually-ran-it",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "I Actually Ran It",
     "text": "I Actually Ran It"
   },
   {
     "objectID": "index.html#still-in-bud-march-30th",
     "href": "index.html#still-in-bud-march-30th",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Still in Bud: March 30th",
     "text": "Still in Bud: March 30th"
   },
   {
     "objectID": "index.html#peak-bloom-april-18th",
     "href": "index.html#peak-bloom-april-18th",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Peak Bloom: April 18th",
     "text": "Peak Bloom: April 18th\nRupert St - with my mom, three weeks later:"
   },
   {
     "objectID": "index.html#what-we-did",
     "href": "index.html#what-we-did",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "What We Did",
     "text": "What We Did\n\n5 open Vancouver datasets → ~3,500 Japanese flowering cherry trees\nSnapped trees to 50k street segments → density per 100m\nInteractive maps: neighbourhood choropleth + top 30 streets\nTSP: 10-stop running route and 30-stop cycling tour\nGPX files ready to load into Strava / Garmin"
   },
   {
     "objectID": "index.html#things-worth-remembering",
     "href": "index.html#things-worth-remembering",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Things Worth Remembering",
     "text": "Things Worth Remembering\n\nst_nearest_feature() - point-to-line assignment in one call\nDensity without a minimum count is just noise from tiny alleys\nNeighbourhood and street analysis ask different questions - both matter\nTSP needs a cost matrix - Euclidean is fast, road network is honest\nClean the network (to_spatial_subdivision + to_spatial_smooth) before routing\nOSRM turns stop order into actual road geometry"
   },
   {
     "objectID": "index.html#where-claude-code-helped",
     "href": "index.html#where-claude-code-helped",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Where Claude Code Helped",
     "text": "Where Claude Code Helped\nClaude Code helped throughout:\n\nMap aesthetics - described what I wanted, it wrote the {mapgl} layers\nGoogle Maps URLs - split 30-stop tour into 3 legs of 10; shareable links\nOSRM fallback - street data had geometry issues; Claude found OSRM as an alternative\nCode comments - “why” not just “what”\nPorting analysis to slides - scripts → slide-friendly code chunks\nThese slides - structure, submodule wiring, Kyle Walker shout-out\nASCII diagrams - mock up flow and structure diagrams\n\nCan also use Quarto + Mermaid diagrams\n\n\n\n\n\n\n\n\nThe code is not the hard part\n\n\nAI can write the code. What it cannot do: ask the right question, recognize a wrong result, or know which assumption to challenge next. That is the skill worth building."
   },
   {
     "objectID": "index.html#open-data-is-amazing",
     "href": "index.html#open-data-is-amazing",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Open Data is Amazing",
     "text": "Open Data is Amazing\nVancouver Open Data Portal - free, well-documented, kept up to date:\n\nTree locations and dimensions\nStreet network (block-level segments)\nNeighbourhood boundaries\nHundreds more datasets"
   },
   {
     "objectID": "index.html#sharing-results-with-quarto",
     "href": "index.html#sharing-results-with-quarto",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Sharing Results with Quarto",
     "text": "Sharing Results with Quarto\nSame R code → blog post via Quarto + GitHub Pages\n\n\n\nInteractive maps embedded directly\nGPX download links\nNo R required to read it\nAnalysis repo, talk, and blog are all Quarto documents\n\n\nThe Quarto stack\nanalysis.R\n  ↓\nresults/README.qmd   ← blog post source\n  ↓ quarto render\ndocs/index.html      ← GitHub Pages\nGrace’s talk from last month covers exactly this.\n\n\n\nBlog: chendaniely.github.io/posts/2026/2026-03-30-yvr-cherry-blossoms-marathon/"
   },
   {
     "objectID": "index.html#appreciating-city-planners",
     "href": "index.html#appreciating-city-planners",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Appreciating City Planners",
     "text": "Appreciating City Planners\n\n\nThe city has been deliberate about where these trees go:\n\nSpread across many neighbourhoods, not concentrated in one spot\nDifferent species bloom at different times → longer season overall\nEven a single tree at an intersection makes a difference\n\n\n\n\n\nA single cherry blossom behind the Kensington Park Community Center sign"
   },
   {
     "objectID": "index.html#next-bloom-aware-routes",
     "href": "index.html#next-bloom-aware-routes",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "Next: Bloom-Aware Routes",
     "text": "Next: Bloom-Aware Routes\nThe problem: routes show where trees are planted, not where they’re blooming\nConfirmed on my March 30th run.\n\n\nThe idea\n\nCrowd-sourced bloom photos: Facebook, Reddit, vcbf.ca\nEstimate bloom timing per species\nSpecies matters as much as microclimate\nBuild routes for trees actually blooming on a given day\n\n\nWhat this becomes\nPick a date → route of currently-blooming streets:\n\nEarly March → early-blooming species\nPeak season → full grand tour\nLate April → late-blooming varieties only"
   },
   {
     "objectID": "index.html#the-blossoms-dont-last-long",
     "href": "index.html#the-blossoms-dont-last-long",
-    "title": "Vancouver Cherry Blossoms",
+    "title": "Finding the Best Cherry Blossom Streets in Vancouver",
     "section": "The Blossoms Don’t Last Long",
     "text": "The Blossoms Don’t Last Long\n\nThis season is over!\n\nResources\n\nAnalysis code: github.com/chendaniely/yvr-cherry-blossoms\nBlog post: chendaniely.github.io\nGPX files in the repo data/routes/"
   }
