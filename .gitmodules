@@ -1,0 +1,3 @@
+[submodule "yvr-cherry-blossoms"]
+	path = yvr-cherry-blossoms
+	url = https://github.com/chendaniely/yvr-cherry-blossoms
