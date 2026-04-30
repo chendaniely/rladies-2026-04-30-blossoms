@@ -1,4 +1,4 @@
-.PHONY: setup submodule slides clean
+.PHONY: setup submodule slides clean clean-all
 
 # First-time setup after cloning: initialise and populate the submodule
 setup: submodule
@@ -17,3 +17,7 @@ slides:
 # Remove rendered output
 clean:
 	rm -rf index_files index.html
+
+# Remove rendered output and knitr cache (forces full re-render)
+clean-all:
+	rm -rf index_files index.html index_cache

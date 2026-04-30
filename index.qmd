@@ -10,23 +10,26 @@ format:
     chalkboard: false
     code-line-numbers: true
     highlight-style: github
-    footer: "R-Ladies YVR · 2026-04-30"
+    footer: "R-Ladies YVR · https://github.com/chendaniely/rladies-2026-04-30-blossoms"
     logo: ""
     transition: fade
     background-transition: fade
     incremental: false
     code-overflow: wrap
+    smaller: true
+    output-location: slide
 execute:
   echo: true
-  eval: false
+  eval: true
   warning: false
   message: false
+  cache: true
 ---
 
 ```{r}
 #| label: setup
 #| echo: false
-#| eval: false
+#| eval: true
 library(sf)
 library(dplyr)
 library(stringr)
@@ -35,22 +38,17 @@ library(mapgl)
 library(sfnetworks)
 library(igraph)
 library(spopt)
+library(ggplot2)
+library(purrr)
 ```
 
 ## Motivation {background-color="#ffb7c5"}
 
-> *Every spring, Vancouver transforms into one of the most breathtaking cities on earth.*
-
-::: incremental
-- Hundreds of cherry blossoms erupt in pink and white across the city
-- The official [Vancouver Cherry Blossom Festival](https://vcbf.ca/) runs ~March 27 – April 17
+- Every spring Vancouver gets buried in cherry blossoms
+- The [Vancouver Cherry Blossom Festival](https://vcbf.ca/) runs ~March 27 – April 17
 - But **which streets** are actually worth visiting?
-- And could you see the best of them in a single route?
-:::
+- And could you see the best of them in a single run?
 
-::: notes
-This is the question that started this whole project. I wanted to combine my love of running and data to answer a very practical question.
-:::
 
 ## The Goal {.center}
 
@@ -58,19 +56,41 @@ This is the question that started this whole project. I wanted to combine my lov
 2. Identify the streets (and neighbourhoods) with the highest density
 3. Build an optimized route to visit the top streets in one trip
 
-. . .
 
 All code: <https://github.com/chendaniely/yvr-cherry-blossoms>
 
+## The Full Pipeline
+
+```
+data/original/          ← Vancouver Open Data (raw GeoJSON)
+    ↓ code/01-clean/
+data/final/             ← cherry_blossoms.geojson, streets.geojson
+    ↓ code/02-street_tree/
+data/processed/         ← snapped-tree-street.geojson, streets_counted.geojson
+    ↓ results/street_results/README.qmd
+data/processed/         ← top30_streets.geojson
+    ↓ results/tsp_route/README.qmd + code/03-routes/gpx_export.R
+data/routes/            ← 4 GPX files
+```
+
+```bash
+make data      # run all R cleaning + analysis scripts
+make results   # render all Quarto result pages
+make routes    # generate GPX files
+```
+
 ---
 
-## Shout Out: Kyle Walker
+## Shout Out: Kyle Walker, PhD
 
 The project that started it all:
 
 ::: columns
 ::: {.column width="60%"}
-[Kyle Walker](https://walker-data.com/) has been building incredible GIS tooling for R for years — `{tidycensus}`, `{tigris}`, `{crsuggest}`, **`{mapgl}`** (every interactive map in this talk), and more.
+[Kyle Walker](https://walker-data.com/) — great R packages for spatial work:
+
+- `{tidycensus}`, `{tigris}`, `{crsuggest}`
+- **`{mapgl}`** - every interactive map in this talk
 
 Then I saw [this post](https://www.linkedin.com/posts/walkerke_rstats-activity-7440044826521133057-PIhA/):
 
@@ -83,7 +103,7 @@ Then I saw [this post](https://www.linkedin.com/posts/walkerke_rstats-activity-7
 - [walker-data.com](https://walker-data.com/)
 - [LinkedIn](https://www.linkedin.com/in/walkerke/recent-activity/all/)
 
-**`{spopt}` — route optimization in R:**
+**`{spopt}` - R route optimization:**
 
 - [LinkedIn announcement](https://www.linkedin.com/posts/walkerke_rstats-activity-7440044826521133057-PIhA/)
 - [Routing vignette](https://walker-data.com/spopt-r/articles/routing.html)
@@ -99,7 +119,7 @@ Then I saw [this post](https://www.linkedin.com/posts/walkerke_rstats-activity-7
 **Setup**
 
 - GIS concepts review
-- Vancouver Open Data Portal
+- [Vancouver Open Data Portal](https://opendata.vancouver.ca/pages/home/)
 - The tree & street data
 :::
 ::: {.column width="50%"}
@@ -116,27 +136,27 @@ Then I saw [this post](https://www.linkedin.com/posts/walkerke_rstats-activity-7
 
 ## Previous R-Ladies Talks
 
-::: {.callout-note title="Create Custom Webpages with R and Quarto — Grace (March 2026)"}
+::: {.callout-note title="Create Custom Webpages with R and Quarto - Grace (March 2026)"}
 R-Ladies YVR · [Meetup event](https://www.meetup.com/rladies-vancouver/events/313107321/)
 :::
 
-::: {.callout-note title="Intro to Spatial Data in R — Véronique & Johannes (2025)"}
+::: {.callout-note title="Intro to Spatial Data in R - Véronique & Johannes (2025)"}
 R-Ladies YVR · [Meetup event](https://www.meetup.com/rladies-vancouver/events/302802707/)
 :::
 
-If you missed those talks — this section is a quick refresher on the GIS concepts we'll use today.
+If you missed those talks - this section is a quick refresher on the GIS concepts we'll use today.
 
 ## What is GIS?
 
-**Geographic Information System** — tools for capturing, storing, analyzing spatial data
+**Geographic Information System** - tools for capturing, storing, analyzing spatial data
 
 ::: columns
 ::: {.column width="50%"}
 **Vector data** (what we use today)
 
-- **Points** — individual trees 🌸
-- **Lines** — street segments 🛣️
-- **Polygons** — neighbourhoods 🗺️
+- **Points** - individual trees 🌸
+- **Lines** - street segments 🛣️
+- **Polygons** - neighbourhoods 🗺️
 :::
 ::: {.column width="50%"}
 **Raster data** (not today)
@@ -147,23 +167,49 @@ If you missed those talks — this section is a quick refresher on the GIS conce
 :::
 :::
 
-## Coordinate Reference Systems (CRS)
+## Coordinate Reference Systems
 
-Every spatial dataset needs a CRS — defines *how coordinates map to Earth's surface*
+Every spatial dataset needs a CRS - defines *how coordinates map to Earth's surface*
 
 ```{r}
 library(sf)
 
-# WGS84 — latitude/longitude (degrees) — good for display
+# WGS84 - latitude/longitude (degrees) - good for display
 trees <- st_read("submodule/yvr-cherry-blossoms/data/original/public-trees.geojson")
 st_crs(trees)  # EPSG:4326
 
-# UTM Zone 10N — metres — good for distance calculations
+# UTM Zone 10N - metres - good for distance calculations
 trees_utm <- st_transform(trees, 32610)
 ```
 
 ::: {.callout-warning}
-Always check CRS before spatial operations! Mixing CRS = wrong results.
+Mix up your CRS and you'll get wrong results with no error message.
+:::
+
+## CRS Alphanumeric Soup
+
+::: columns
+::: {.column width="50%"}
+**EPSG:4326 = WGS84**
+
+- **EPSG** - a registry of named coordinate systems (like a phone book for CRS)
+- **4326** - the ID for WGS84 in that registry
+- **WGS84** - the actual name: *World Geodetic System 1984*
+- What you get: lat/lon in degrees, used by GPS, Google Maps, GeoJSON
+:::
+::: {.column width="50%"}
+**EPSG:32610 = UTM Zone 10N**
+
+- **32610** - EPSG ID for UTM Zone 10N (covers BC/Pacific Northwest)
+- **UTM** - *Universal Transverse Mercator*, a family of projected systems
+- **Zone 10N** - the specific slice of the globe (Vancouver falls here)
+- What you get: X/Y in **metres** - essential for distance calculations
+:::
+:::
+
+
+::: {.callout-tip}
+Rule of thumb: use **4326** for display/storage, **32610** for anything involving distance or area in BC.
 :::
 
 ## Key `{sf}` Operations We'll Use
@@ -194,6 +240,8 @@ library(osmdata)     # OpenStreetMap data queries
 
 ## opendata.vancouver.ca
 
+<https://opendata.vancouver.ca/pages/home/>
+
 The City of Vancouver publishes hundreds of datasets under open licenses:
 
 - Trees, parks, bike lanes, zoning, permits, 3D buildings…
@@ -213,7 +261,7 @@ We'll use **5 datasets** today:
 ```{r}
 library(sf)
 
-# All datasets are GeoJSON — sf reads them directly
+# All datasets are GeoJSON - sf reads them directly
 trees        <- st_read("submodule/yvr-cherry-blossoms/data/original/public-trees.geojson")
 streets_city <- st_read("submodule/yvr-cherry-blossoms/data/original/public-streets.geojson")
 streets_priv <- st_read("submodule/yvr-cherry-blossoms/data/original/non-city-streets.geojson")
@@ -222,7 +270,6 @@ neighbourhoods <- st_read("submodule/yvr-cherry-blossoms/data/original/local-are
 ```
 
 ```{r}
-#| eval: false
 glimpse(trees)
 # Rows: 150,016
 # $ tree_id       <int>
@@ -239,13 +286,17 @@ glimpse(trees)
 
 ## Which Trees Are Cherry Blossoms?
 
-The tree dataset has 150k+ trees. We need to find the cherry blossoms.
+150k+ trees in the dataset - most are not cherry blossoms.
 
 ::: {.callout-note}
 I had no idea there were so many different kinds of cherry blossom trees!
 :::
 
 **Strategy:** filter `common_name` for trees that mention "cherry" AND ("japanese" OR "flower")
+
+::: aside
+Script: [`code/01-clean/cherry_blossoms.R`](submodule/yvr-cherry-blossoms/code/01-clean/cherry_blossoms.R)
+:::
 
 ```{r}
 library(stringr)
@@ -275,7 +326,6 @@ cherry_blossoms <- trees |>
 nrow(cherry_blossoms)  # ~3,500 trees
 ```
 
-. . .
 
 **10 species found:**
 
@@ -284,9 +334,9 @@ nrow(cherry_blossoms)  # ~3,500 trees
 - `KWANZAN FLOWERING CHERRY`
 - … and more
 
-## Data Quality: A Frustrating Reality
+## Data Quality: A Frustration
 
-We want to filter to *mature* trees (those actually blooming). Ideally filter by age...
+Mature trees are more reliable bloomers. Filter by age?
 
 ```{r}
 # How complete is date_planted?
@@ -303,15 +353,14 @@ cherry_blossoms |>
   3521  979       72.2
 ```
 
-. . .
 
 ::: {.callout-warning}
-72% of trees have no planting date — we can't use age as a filter!
+72% of trees have no planting date - age filtering is off the table.
 :::
 
 ## Falling Back to Size Proxies
 
-Height and diameter are fully recorded — use them as maturity proxies:
+Height and diameter are fully recorded - use them as size stand-ins:
 
 ```{r}
 # 100% complete
@@ -328,42 +377,61 @@ min_height_m   <- 2.5   # metres
 min_diameter_cm <- 7    # cm trunk diameter
 
 # NOTE: in the final analysis, even filtering by these thresholds
-# changes the result very little — most trees pass. We keep all trees.
+# changes the result very little - most trees pass. We keep all trees.
 blooming_trees <- cherry_blossoms
 ```
 
 ## The Street Data
 
-Three sources to combine into one unified street network:
+Three sources - combine them into one dataset:
 
 ```{r}
-library(dplyr)
+streets_pub <- st_read(
+  "submodule/yvr-cherry-blossoms/data/original/public-streets.geojson",
+  quiet = TRUE
+) |> st_transform(4326) |>
+  mutate(street_type = "Public", street_label = hblock)
 
-streets <- bind_rows(
-  st_read("submodule/yvr-cherry-blossoms/data/original/public-streets.geojson") |>
-    st_transform(4326) |>
-    mutate(street_type = "public"),
+streets_non <- st_read(
+  "submodule/yvr-cherry-blossoms/data/original/non-city-streets.geojson",
+  quiet = TRUE
+) |> st_transform(4326) |>
+  mutate(
+    street_type = "Non-city",
+    street_label = if_else(
+      !is.na(from_hblk) & from_hblk != "",
+      paste(from_hblk, streetname), streetname
+    )
+  )
 
-  st_read("submodule/yvr-cherry-blossoms/data/original/non-city-streets.geojson") |>
-    st_transform(4326) |>
-    mutate(street_type = "non-city"),
+streets_lan <- st_read(
+  "submodule/yvr-cherry-blossoms/data/original/lanes.geojson",
+  quiet = TRUE
+) |> st_transform(4326) |>
+  mutate(street_type = "Lane",
+         street_label = paste(from_hundred_block, std_street))
 
-  st_read("submodule/yvr-cherry-blossoms/data/original/lanes.geojson") |>
-    st_transform(4326) |>
-    mutate(street_type = "lane")
-) |>
-  mutate(street_label = /* standardize name field */)
-
-st_write(streets, "submodule/yvr-cherry-blossoms/data/final/streets.geojson")
+streets <- bind_rows(streets_pub, streets_non, streets_lan)
+nrow(streets)
 ```
 
 Note: each street is stored as **individual block-level segments**
+
+::: aside
+Script: [`code/01-clean/streets.R`](submodule/yvr-cherry-blossoms/code/01-clean/streets.R)
+:::
+
+```{r}
+#| echo: false
+streets <- st_read("submodule/yvr-cherry-blossoms/data/final/streets.geojson",
+                   quiet = TRUE)
+```
 
 # Building the Initial Map {background-color="#2d4739"}
 
 ## First Map: Where Are the Trees?
 
-Start simple — plot all cherry blossom trees with `{mapgl}`
+Start simple - plot all cherry blossom trees with `{mapgl}`
 
 ```{r}
 library(mapgl)
@@ -404,7 +472,7 @@ maplibre(
   )
 ```
 
-## Colour by Species
+## All Cherry Blossoms by Species
 
 ```{r}
 tree_variety_names <- sort(unique(cherry_blossoms$common_name))
@@ -412,7 +480,10 @@ tree_variety_colors <- colorRampPalette(
   c("#e879a0", "#a855f7", "#3b82f6", "#10b981", "#f59e0b")
 )(length(tree_variety_names))
 
-maplibre(...) |>
+maplibre(
+  style  = openfreemap_style("bright"),
+  bounds = cherry_blossoms
+) |>
   add_circle_layer(
     id     = "trees",
     source = cherry_blossoms,
@@ -432,17 +503,9 @@ maplibre(...) |>
   )
 ```
 
-## The Initial Map
-
-![Individual cherry blossom trees coloured by species across Vancouver](images/map_all_trees_placeholder.png){fig-alt="Map placeholder — replace with screenshot of interactive map"}
-
-::: notes
-At this point we can see that trees are widely distributed, with some clustering. This raises the natural question: which neighbourhoods have the most?
-:::
-
 # Asking Questions {background-color="#2d4739"}
 
-## Question 1: Which Neighbourhoods Have the Most?
+## Which Neighbourhood Has Most?
 
 We need to **spatially join** trees to neighbourhoods, then count:
 
@@ -472,7 +535,6 @@ neighbourhoods <- neighbourhoods |>
   )
 ```
 
-. . .
 
 ::: columns
 ::: {.column width="50%"}
@@ -511,13 +573,11 @@ maplibre(style = openfreemap_style("bright"), bounds = neighbourhoods) |>
 **Mount Pleasant** = highest density neighbourhood
 :::
 
-. . .
 
 ::: {.r-fit-text}
 **David Lam Park (Downtown)** = where the Festival is held
 :::
 
-. . .
 
 Why the paradox?
 
@@ -526,31 +586,28 @@ Why the paradox?
 - Density = trees ÷ area → big area = low density
 - But Mount Pleasant has trees *spread across many residential streets*
 
-## Question 2: Which Streets Are Best?
+## Which Streets Are Best?
 
-Neighbourhoods are a useful overview but the real experience happens **at street level**.
+Neighbourhoods give the overview - the actual experience is at street level.
 
-. . .
+> Where do I take my mom?
 
-**New approach:**
+> Where can folks take photos?
+
+> Where are the hidden local gems?
 
 1. Assign each tree to its nearest street segment
-2. Count trees per street segment
-3. Normalize by segment length → **trees per 100m**
+2. Count trees per segment
+3. Normalize by length → **trees per 100m**
 4. Rank and map
-
-This gives us the streets that are *actually* worth walking.
 
 # Street-Level Analysis {background-color="#2d4739"}
 
-## Example: Snapping — Toy Setup
+## Example: Snapping - Toy Setup
 
 Build a mini version with 4 streets and 9 trees:
 
 ```{r}
-library(ggplot2)
-library(purrr)
-
 street_colors <- c(
   "Oak St"     = "#e76f51",
   "Elm Ave"    = "#2a9d8f",
@@ -655,7 +712,11 @@ ggplot() +
 
 ## Snapping Trees to Streets
 
-`st_nearest_feature()` returns the index of the nearest feature — O(n log n) via spatial index:
+`st_nearest_feature()` returns the index of the nearest feature - one call for all 3,500 trees:
+
+::: aside
+Script: [`code/02-street_tree/snap_trees_to_streets.R`](submodule/yvr-cherry-blossoms/code/02-street_tree/snap_trees_to_streets.R)
+:::
 
 ```{r}
 # One function call assigns every tree to its nearest street
@@ -669,13 +730,16 @@ snapped <- cherry_blossoms |>
   )
 ```
 
-. . .
 
 ::: {.callout-note}
-`st_nearest_feature()` uses a spatial index — fast even for 3,500 trees × 50,000+ street segments.
+Uses a spatial index under the hood - 3,500 trees × 50,000+ segments runs in seconds.
 :::
 
 ## Counting Trees per Segment
+
+::: aside
+Script: [`code/02-street_tree/street_analysis.R`](submodule/yvr-cherry-blossoms/code/02-street_tree/street_analysis.R)
+:::
 
 ```{r}
 tree_counts <- snapped |>
@@ -683,9 +747,14 @@ tree_counts <- snapped |>
   count(street_id, street_label, street_type,
         name = "tree_count")
 
-streets_counted <- streets |>
+streets_joined <- streets |>
   mutate(street_id = row_number()) |>
-  left_join(tree_counts, by = "street_id") |>
+  left_join(tree_counts, by = "street_id")
+
+# drop duplicate .y columns, rename .x → clean names, then compute length/density
+streets_counted <- streets_joined |>
+  select(-street_label.y, -street_type.y) |>
+  rename(street_label = street_label.x, street_type = street_type.x) |>
   mutate(
     tree_count = replace_na(tree_count, 0),
     length_m   = as.numeric(st_length(geometry)),
@@ -695,17 +764,17 @@ streets_counted <- streets |>
 
 ## Data Integrity Check
 
-Streets are stored segment-by-segment (each block is a row). After the join, verify nothing drifted:
+After the join, verify labels are consistent across segments:
 
 ```{r}
-label_mismatches <- streets_counted |>
+label_mismatches <- streets_joined |>
   st_drop_geometry() |>
   filter(!is.na(street_label.y)) |>
   filter(street_label.x != street_label.y)
 
 if (nrow(label_mismatches) > 0) {
   warning(sprintf(
-    "%d segment(s) have mismatched labels — re-run clean scripts",
+    "%d segment(s) have mismatched labels - re-run clean scripts",
     nrow(label_mismatches)
   ))
 } else {
@@ -713,11 +782,13 @@ if (nrow(label_mismatches) > 0) {
 }
 ```
 
-Good practice: **always validate spatial joins** — silent mismatches are common.
+::: {.callout-tip}
+Always validate spatial joins - silent mismatches are common.
+:::
 
-## Example: Streets Are Block-Level Segments
+## Example: Block-Level Segments
 
-One "street" in the data is many separate block segments — pick one to see:
+One "street" in the data is many separate block segments - pick one to see:
 
 ```{r}
 one_street <- streets |>
@@ -745,7 +816,7 @@ maplibre(bounds = one_street) |>
 ```
 
 ::: {.callout-note}
-Each colour is a separate row in the data — that's why we need to aggregate before ranking streets.
+Each colour is a separate row in the data - that's why we need to aggregate before ranking streets.
 :::
 
 ## Aggregating to Street Level
@@ -753,17 +824,30 @@ Each colour is a separate row in the data — that's why we need to aggregate be
 Each street has multiple block segments. Union them to see the whole street:
 
 ```{r}
+# summary table (no geometry - used for ranking)
 street_summary <- streets_counted |>
+  st_drop_geometry() |>
   filter(tree_count > 0) |>
   group_by(street_label, street_type) |>
   summarise(
     total_trees  = sum(tree_count),
     total_length = sum(length_m),
     n_segments   = n(),
-    geometry     = st_union(geometry),   # merge all blocks
     .groups = "drop"
   ) |>
   mutate(density = total_trees / total_length * 100)
+
+# spatial version (geometry needed for mapping)
+streets_sf <- streets_counted |>
+  filter(tree_count > 0) |>
+  group_by(street_label, street_type) |>
+  summarise(
+    total_trees  = sum(tree_count),
+    total_length = sum(length_m),
+    density      = sum(tree_count) / sum(length_m) * 100,
+    geometry     = st_union(geometry),
+    .groups = "drop"
+  )
 ```
 
 ## Top Streets
@@ -773,7 +857,7 @@ street_summary <- streets_counted |>
 top_by_count <- street_summary |>
   slice_max(total_trees, n = 20)
 
-# Top by density — require ≥5 trees to suppress short stubs
+# Top by density - require ≥5 trees to suppress short stubs
 # (a single tree on a 5m dead-end = 2000 trees/100m, meaningless)
 top_by_density <- street_summary |>
   filter(total_trees >= 5) |>
@@ -781,10 +865,19 @@ top_by_density <- street_summary |>
 ```
 
 ::: {.callout-important}
-The `total_trees >= 5` filter is critical: without it, a single isolated tree on a tiny alley fragment tops the density ranking.
+Without `total_trees >= 5`, a single tree on a 5m dead-end alley tops the rankings at 2,000 trees/100m.
 :::
 
 ## The Top 30 Streets Map
+
+```{r}
+#| echo: false
+streets_dense <- st_read(
+  "submodule/yvr-cherry-blossoms/data/processed/top30_streets.geojson",
+  quiet = TRUE
+)
+top30_stops <- streets_dense
+```
 
 ```{r}
 maplibre(style = openfreemap_style("bright"), bounds = top30_stops) |>
@@ -815,15 +908,13 @@ maplibre(style = openfreemap_style("bright"), bounds = top30_stops) |>
 **Mount Pleasant** has the highest *neighbourhood* density
 :::
 
-. . .
 
 ::: {.r-fit-text}
 but **none** of the top 30 densest *streets*
 :::
 
-. . .
 
-**Why?** Mount Pleasant trees are spread across many streets — great for wandering, but no single street is exceptionally dense.
+**Why?** Mount Pleasant trees are spread across many streets - great for wandering, but no single street is exceptionally dense.
 
 The top streets cluster in **West End / Yaletown**, **Kerrisdale**, and **East Vancouver**.
 
@@ -844,197 +935,170 @@ The top streets cluster in **West End / Yaletown**, **Kerrisdale**, and **East V
 
 # Route Optimization {background-color="#2d4739"}
 
-## The Travelling Salesperson Problem
-
-Given 10 stops, find the **shortest route** visiting each exactly once.
+## Travelling Salesperson Problem
 
 ::: columns
-::: {.column width="60%"}
-- NP-hard in general
-- Exact solutions impractical for large N
-- For N=10: feasible with heuristics
-- `{spopt}` implements TSP for spatial data
+::: {.column width="65%"}
+Given N stops, find the **shortest route** visiting each exactly once.
+
+- NP-hard exactly - heuristics for anything practical
+- [`{spopt}`](https://walker-data.com/spopt-r/articles/routing.html) by Kyle Walker: nearest-neighbour seed + 2-opt/or-opt improvement
+- Key input: a **cost matrix** of distances or travel times between every pair of stops
+
+
+10 stops → 10! / 2 = **1,814,400** possible routes
 :::
-::: {.column width="40%"}
-```
-          10 stops
-         →  10! / 2
-         = 1,814,400
-         possible routes
-```
+::: {.column width="35%"}
+![](images/spopt-logo.png)
 :::
 :::
 
-. . .
-
-Two distance approaches:
-1. **Euclidean** (straight-line) — fast, approximate
-2. **Road network** (actual travel distance) — accurate, slower
-
-## Euclidean TSP (Quick Version)
+::: aside
+[`{spopt}` routing vignette](https://walker-data.com/spopt-r/articles/routing.html) · Script: [`code/03-routes/gpx_export.R`](submodule/yvr-cherry-blossoms/code/03-routes/gpx_export.R)
+:::
 
 ```{r}
+#| echo: false
 library(spopt)
+top10_stops <- st_read(
+  "submodule/yvr-cherry-blossoms/data/processed/top30_streets.geojson",
+  quiet = TRUE
+) |> filter(rank <= 10)
+```
 
+## Running the TSP
+
+```{r}
 coords <- st_coordinates(top10_stops)
-cost_matrix_euclidean <- as.matrix(dist(coords))
+cost_matrix <- as.matrix(dist(coords))  # Euclidean - fast, good for prototyping
 
 result <- route_tsp(
   top10_stops,
-  start        = 1,     # start at Homer St (#1 ranked)
-  end          = NULL,  # open route (no return to start)
-  cost_matrix  = cost_matrix_euclidean
+  start       = 1,     # Homer St (#1 ranked)
+  end         = NULL,  # open route - no return to start
+  cost_matrix = cost_matrix
 )
+
+meta <- attr(result, "spopt")
+cat(sprintf("Improvement over nearest-neighbour: %.1f%%\n", meta$improvement_pct))
 
 stops_ordered <- result |>
   filter(!is.na(.visit_order)) |>
   arrange(.visit_order)
+stops_ordered |> select(street_label, .visit_order)
 ```
 
-## Road Network TSP (Accurate Version)
+## Routing Geometry Was Off
 
-Build a routable street network from OSM data:
+`route_tsp()` returns the **stop order** - not the road paths between stops.
 
-```{r}
-library(sfnetworks)
-library(osmdata)
+Drawing the actual route requires geometry connecting each stop in sequence.
 
-# Query OSM for Vancouver streets
-osm_streets <- opq("Vancouver, BC") |>
-  add_osm_feature("highway",
-    c("primary", "secondary", "tertiary",
-      "residential", "service")) |>
-  osmdata_sf()
-
-# Build routable network
-net <- as_sfnetwork(osm_streets$osm_lines, directed = FALSE) |>
-  convert(to_spatial_subdivision) |>  # split at intersections
-  convert(to_smoothed)                # remove degree-2 nodes
-```
-
-## Computing the Road Cost Matrix
-
-```{r}
-library(igraph)
-
-# Snap our 10 stops to the nearest network node
-stop_nodes <- st_nearest_feature(top10_stops, net |>
-  activate("nodes") |> st_as_sf())
-
-# Shortest path between every pair of stops
-cost_matrix_road <- matrix(0, nrow = 10, ncol = 10)
-
-for (i in seq_len(10)) {
-  for (j in seq_len(10)) {
-    path <- igraph::shortest_paths(
-      graph = igraph::graph_from_data_frame(net),
-      from  = stop_nodes[i],
-      to    = stop_nodes[j],
-      weights = E(net)$weight
-    )
-    cost_matrix_road[i, j] <- sum(path$epath[[1]]$weight)
-  }
-}
-```
-
-## Why Network Cleaning Matters
 
 ::: columns
 ::: {.column width="50%"}
-**Before cleaning**
+**What I tried**
 
-- Many degree-2 nodes (mid-block)
-- Disconnected fragments
-- Slow shortest-path computation
+Build a road network from Vancouver street segments + `sfnetworks`, compute shortest paths, connect the dots
 :::
 ::: {.column width="50%"}
-**After cleaning**
+**What happened**
 
-`to_spatial_subdivision()` → splits at intersections
-
-`to_smoothed()` → removes unnecessary mid-edge nodes
-
+Routes didn't follow roads - lines cut through blocks, missed turns, looked wrong
 :::
 :::
 
-```{r}
-# Network stats before/after
-net_clean <- net |>
-  convert(to_spatial_subdivision) |>
-  convert(to_smoothed)
+## Why? Street Data ≠ Routing Data
 
-igraph::vcount(net)        # nodes before
-igraph::vcount(net_clean)  # nodes after (much fewer)
-```
+- Vancouver open data: **block-level records** - built for spatial joins, not routing
+- Tried full **OpenStreetMap data** - still had issues
+- Gaps in network topology, or geometry too messy for a DIY routing engine
 
-## OSRM for Real Road-Following Routes
+**The lesson:** routing is a solved problem. Don't rebuild it from scratch.
 
-TSP gives us the **order** — OSRM gives us the actual **road geometry**:
+## OSRM to the Rescue
+
+TSP gives the **order** - [OSRM](https://project-osrm.org/) gives actual **road geometry**:
 
 ```{r}
 library(httr)
 
-# Call the public OSRM demo server
-osrm_route <- function(coords, profile = "foot") {
+osrm_route <- function(stops_sf, profile = "foot") {
+  coords <- st_coordinates(stops_sf)
   coord_str <- paste(
-    apply(coords, 1, function(r) paste(r["X"], r["Y"], sep = ",")),
+    sprintf("%.6f,%.6f", coords[, 1], coords[, 2]),
     collapse = ";"
   )
   url <- sprintf(
     "https://router.project-osrm.org/route/v1/%s/%s?overview=full&geometries=geojson",
     profile, coord_str
   )
-  resp <- GET(url)
-  content(resp)$routes[[1]]
+  content(GET(url))$routes[[1]]
 }
 ```
 
-Route profiles: `foot` (uses sidewalks/paths), `bike` (prefers cycle lanes)
+Profiles: `"foot"` (sidewalks + paths) · `"bike"` (cycle lanes preferred)
 
 ## GPX Export
 
-Make the route portable — import to Garmin, Strava, Komoot, AllTrails:
+Make the route portable - Garmin, Strava, Komoot, AllTrails:
 
 ```{r}
 library(xml2)
 
-write_gpx <- function(track_sf, waypoints_sf, filename) {
-  gpx <- xml_new_root("gpx",
-    version = "1.1", creator = "yvr-cherry-blossoms",
-    xmlns = "http://www.topografix.com/GPX/1/1"
-  )
+write_gpx <- function(stops_sf, track_coords, name, path) {
+  doc <- xml_new_root("gpx", version = "1.1",
+    creator = "yvr-cherry-blossoms",
+    xmlns   = "http://www.topografix.com/GPX/1/1")
 
-  # Waypoints
-  for (i in seq_len(nrow(waypoints_sf))) {
-    wpt <- xml_add_child(gpx, "wpt",
-      lat = st_coordinates(waypoints_sf[i, ])[, "Y"],
-      lon = st_coordinates(waypoints_sf[i, ])[, "X"]
-    )
-    xml_add_child(wpt, "name", waypoints_sf$street_label[i])
+  pts <- st_coordinates(stops_sf)
+  for (i in seq_len(nrow(stops_sf))) {
+    wpt <- xml_add_child(doc, "wpt",
+      lat = sprintf("%.6f", pts[i, 2]),
+      lon = sprintf("%.6f", pts[i, 1]))
+    xml_add_child(wpt, "name",
+      sprintf("Stop %d - %s", i, stops_sf$street_label[i]))
   }
-  # ... add track points from OSRM geometry
-  write_xml(gpx, filename)
+  # ... track points from OSRM geometry added here
+  write_xml(doc, path)
 }
 ```
 
-## The Cherry Blossom Marathon Route
+## Cherry Blossom Marathon Route
 
 **Top 10 stops** · 23.4 km (14.5 miles) straight-line · ~35 km road-following
 
-![Top 10 cherry blossom marathon route](images/map_marathon_placeholder.png){fig-alt="Map placeholder — replace with screenshot"}
+![Top 10 cherry blossom marathon route](images/map_marathon_placeholder.png){fig-alt="Map placeholder - replace with screenshot"}
 
 ::: notes
-I named this the "Vancouver Cherry Blossom Marathon" — you heard it here first! The route starts at David Lam Park (where the Cherry Blossom Festival is held) and connects the 10 densest cherry blossom streets.
+I named this the "Vancouver Cherry Blossom Marathon" - you heard it here first! The route starts at David Lam Park (where the Cherry Blossom Festival is held) and connects the 10 densest cherry blossom streets.
 :::
+
+```{r}
+#| echo: false
+top30_stops <- st_read(
+  "submodule/yvr-cherry-blossoms/data/processed/top30_streets.geojson",
+  quiet = TRUE
+) |> mutate(google_address = paste0(street_label, ", Vancouver, BC"))
+
+coords30 <- st_coordinates(top30_stops)
+tsp_result_30 <- route_tsp(
+  top30_stops,
+  start       = 1,
+  end         = NULL,
+  cost_matrix = as.matrix(dist(coords30))
+)
+```
 
 ## For Cyclists: The Grand Tour
 
 **Top 30 stops** · 34.7 km (21.6 miles) straight-line
 
-Google Maps limits routes to 10 stops — split into 3 legs:
+Google Maps limits routes to 10 stops - split into 3 legs:
 
 ```{r}
 bike_stops <- tsp_result_30 |>
+  filter(!is.na(.visit_order)) |>
   arrange(.visit_order) |>
   mutate(leg = ceiling(row_number() / 10))  # legs 1, 2, 3
 
@@ -1047,128 +1111,158 @@ google_maps_url <- function(stops_sf) {
 }
 
 urls <- lapply(1:3, \(i) google_maps_url(filter(bike_stops, leg == i)))
+urls[[1]]
 ```
+
+# Reflections {background-color="#2d4739"}
+
+## I Actually Ran It
+
+<div style="display: flex; justify-content: center;">
+<div style="width: 100%; max-width: 600px; height: 550px; overflow: hidden;">
+<div class="strava-embed-placeholder" data-embed-type="activity" data-embed-id="17918124229" data-style="standard" data-from-embed="false" data-token="ku0QP2X0q5KBINv3u0no1b1CSi4HddMBQYHl-WHsFJ4"></div><script src="https://strava-embeds.com/embed.js"></script>
+</div>
+</div>
+
+## Still in Bud: March 30th
+
+::: columns
+::: {.column width="50%"}
+![](images/daniel-yvr-blossoms/PXL_20260330_203502912.TS.gif){style="max-height: 550px; width: auto; object-fit: contain;"}
+:::
+::: {.column width="50%"}
+![](images/daniel-yvr-blossoms/PXL_20260330_213039273.jpg){style="max-height: 550px; width: auto; object-fit: contain;"}
+:::
+:::
+
+## Peak Bloom: April 18th
+
+Rupert St - with my mom, three weeks later:
+
+![](images/daniel-yvr-blossoms/PXL_20260418_212624980.jpg){fig-align="center" style="max-height: 550px; width: auto; object-fit: contain;"}
 
 # Results & Reflection {background-color="#2d4739"}
 
-## What We Built
+## What We Did
 
-::: incremental
-- Loaded and merged 5 open datasets from Vancouver
-- Filtered 150k trees to ~3,500 Japanese flowering cherries
-- Snapped trees to street segments → counted density per 100m
-- Built interactive neighbourhood and street maps
-- Found the top 30 streets by blossom density
-- Solved TSP for a 10-stop running route + 30-stop cycling tour
-- Exported road-following GPX files
-:::
+- 5 open Vancouver datasets → ~3,500 Japanese flowering cherry trees
+- Snapped trees to 50k street segments → density per 100m
+- Interactive maps: neighbourhood choropleth + top 30 streets
+- TSP: 10-stop running route and 30-stop cycling tour
+- GPX files ready to load into Strava / Garmin
 
-## Key Technical Takeaways
+## Things Worth Remembering
 
-::: incremental
-1. **`st_nearest_feature()`** does tree-to-street snapping in one call
-2. **Density metrics** need a minimum count threshold to avoid noise
-3. **Neighbourhood vs street** analysis tells different stories
-4. **TSP** requires a cost matrix — Euclidean is fast, network is accurate
-5. **Network cleaning** (`to_spatial_subdivision` + `to_smoothed`) matters for routing
-6. **OSRM** converts a TSP solution into real road-following geometry
+1. **`st_nearest_feature()`** - point-to-line assignment in one call
+2. **Density without a minimum count** is just noise from tiny alleys
+3. **Neighbourhood and street** analysis ask different questions - both matter
+4. **TSP needs a cost matrix** - Euclidean is fast, road network is honest
+5. **Clean the network** (`to_spatial_subdivision` + `to_spatial_smooth`) before routing
+6. **OSRM** turns stop order into actual road geometry
+
+## Where Claude Code Helped
+
+[Claude Code](https://claude.com/claude-code) helped throughout:
+
+- **Map aesthetics** - described what I wanted, it wrote the `{mapgl}` layers
+- **Google Maps URLs** - split 30-stop tour into 3 legs of 10; shareable links
+- **OSRM fallback** - street data had geometry issues; Claude found OSRM as an alternative
+- **Code comments** - "why" not just "what"
+- **Porting analysis to slides** - scripts → slide-friendly code chunks
+- **These slides** - structure, submodule wiring, Kyle Walker shout-out
+
+::: {.callout-important}
+## The code is not the hard part
+
+AI can write the code. What it cannot do: ask the right question, recognize a wrong result, or know which assumption to challenge next. That is the skill worth building.
 :::
 
 ## Open Data is Amazing
 
-::: {.callout-tip}
-This entire analysis would not be possible without the City of Vancouver's commitment to open data publishing.
-:::
-
-The [Vancouver Open Data Portal](https://opendata.vancouver.ca/) has:
+[Vancouver Open Data Portal](https://opendata.vancouver.ca/) - free, well-documented, kept up to date:
 
 - Tree locations and dimensions
 - Street network (block-level segments)
 - Neighbourhood boundaries
-- Much more
+- Hundreds more datasets
 
-All freely available, well-documented, updated regularly.
+## Sharing Results with Quarto
 
-## An Appreciation for City Planners
+Same R code → [blog post](https://chendaniely.github.io/posts/2026/2026-03-30-yvr-cherry-blossoms-marathon/) via Quarto + GitHub Pages
 
-> *"As I've reflected on this small analysis, I've come to really appreciate the thoughtfulness of the city planners in planting these trees."*
+::: columns
+::: {.column width="60%"}
+- Interactive maps embedded directly
+- GPX download links
+- No R required to read it
+- Analysis repo, talk, and blog are all Quarto documents
+:::
+::: {.column width="40%"}
+**The Quarto stack**
 
-- Trees are intentionally spread across the city
-- Not all bloom at the same time → longer season
+```
+analysis.R
+  ↓
+results/README.qmd   ← blog post source
+  ↓ quarto render
+docs/index.html      ← GitHub Pages
+```
+
+Want to learn more? [Grace's talk](https://www.meetup.com/rladies-vancouver/events/313107321/) from last month covers exactly this.
+:::
+:::
+
+::: aside
+Blog: [chendaniely.github.io/posts/2026/2026-03-30-yvr-cherry-blossoms-marathon/](https://chendaniely.github.io/posts/2026/2026-03-30-yvr-cherry-blossoms-marathon/)
+:::
+
+## Appreciating City Planners
+
+::: columns
+::: {.column width="45%"}
+The city has been deliberate about where these trees go:
+
+- Spread across many neighbourhoods, not concentrated in one spot
+- Different species bloom at different times → longer season overall
 - Even a single tree at an intersection makes a difference
+:::
+::: {.column width="55%"}
+![A single cherry blossom behind the Kensington Park Community Center sign](images/kensington_park-cherry-blossom.jpg){fig-alt="Single cherry blossom tree" style="max-height: 500px; width: auto; object-fit: contain;"}
+:::
+:::
 
-![A single cherry blossom behind the Kensington Park Community Center sign](images/kensington_cherry_placeholder.jpg){width="40%" fig-alt="Single cherry blossom tree"}
+## Next: Bloom-Aware Routes
+
+**The problem:** routes show where trees are *planted*, not where they're *blooming*
+
+Confirmed on my March 30th run.
+
+::: columns
+::: {.column width="55%"}
+**The idea**
+
+- Crowd-sourced bloom photos: Facebook, Reddit, [vcbf.ca](https://vcbf.ca/)
+- Estimate **bloom timing per species**
+- Species matters as much as microclimate
+- Build routes for trees actually blooming on a given day
+:::
+::: {.column width="45%"}
+**What this becomes**
+
+Pick a date → route of currently-blooming streets:
+
+- Early March → early-blooming species
+- Peak season → full grand tour
+- Late April → late-blooming varieties only
+:::
+:::
 
 ## The Blossoms Don't Last Long
 
-> *Get out there!*
+> *This season is over!*
 
-::: columns
-::: {.column width="50%"}
 **Resources**
 
 - Analysis code: [github.com/chendaniely/yvr-cherry-blossoms](https://github.com/chendaniely/yvr-cherry-blossoms)
 - Blog post: [chendaniely.github.io](https://chendaniely.github.io/posts/2026/2026-03-30-yvr-cherry-blossoms-marathon/)
 - GPX files in the repo `data/routes/`
-:::
-::: {.column width="50%"}
-**Future work**
-
-- More accurate bloom-time filtering (Cherry Scouts data?)
-- Real-time tree condition data
-- Multi-day itinerary optimization
-- Add other blooming species
-:::
-:::
-
-## Appendix: The Full Pipeline {.appendix}
-
-```
-data/original/          ← Vancouver Open Data (raw GeoJSON)
-    ↓ code/01-clean/
-data/final/             ← cherry_blossoms.geojson, streets.geojson
-    ↓ code/02-street_tree/
-data/processed/         ← snapped-tree-street.geojson, streets_counted.geojson
-    ↓ results/street_results/README.qmd
-data/processed/         ← top30_streets.geojson
-    ↓ results/tsp_route/README.qmd + code/03-routes/gpx_export.R
-data/routes/            ← 4 GPX files
-```
-
-Build with:
-
-```bash
-make data      # run all R cleaning + analysis scripts
-make results   # render all Quarto result pages
-make routes    # generate GPX files
-```
-
-## Appendix: Example — Snapping Illustration {.appendix}
-
-A toy example to show how `st_nearest_feature` works:
-
-```{r}
-# 4 streets, 9 trees
-streets_toy <- st_as_sf(...)  # fake line geometries
-trees_toy   <- st_as_sf(...)  # fake point geometries
-
-# Snap each tree to nearest street
-idx <- st_nearest_feature(trees_toy, streets_toy)
-
-trees_with_street <- trees_toy |>
-  mutate(nearest_street = streets_toy$name[idx])
-
-# Visualize snap lines (dashed blue)
-snap_lines <- mapply(
-  \(t, s) st_cast(st_union(t, s), "LINESTRING"),
-  st_geometry(trees_toy),
-  st_geometry(streets_toy[idx, ]),
-  SIMPLIFY = FALSE
-) |> st_sfc(crs = 4326)
-```
-
----
-
-*Thank you!*
-
-Questions? Find me at [@chendaniely](https://github.com/chendaniely) or open an issue on the repo.

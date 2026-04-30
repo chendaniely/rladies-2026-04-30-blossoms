@@ -1,0 +1,104 @@
+/*-- scss:defaults --*/
+
+// Cherry blossom colour palette
+$cherry-pink: #e879a0;
+$cherry-light: #fce7f0;
+$cherry-dark: #9d174d;
+$forest-green: #2d4739;
+$accent-amber: #d97706;
+
+$font-family-sans-serif: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-family-monospace: "Fira Code", "JetBrains Mono", "Cascadia Code", monospace;
+
+$presentation-heading-color: $forest-green;
+$body-color: #1e293b;
+$link-color: $cherry-dark;
+
+$code-color: $cherry-dark;
+$code-bg: #fdf2f8;
+
+/*-- scss:rules --*/
+
+// Title slide
+.reveal .slide-background-content {
+  background-size: cover;
+}
+
+.reveal h1, .reveal h2 {
+  color: $forest-green;
+  font-weight: 700;
+}
+
+.reveal h3, .reveal h4 {
+  color: $cherry-dark;
+}
+
+// Inline code
+.reveal code:not(.sourceCode) {
+  background-color: $code-bg;
+  color: $code-color;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-size: 0.88em;
+}
+
+// Section title slides
+.reveal section[data-background-color="#2d4739"] h1,
+.reveal section[data-background-color="#2d4739"] h2,
+.reveal section[data-background-color="#2d4739"] p {
+  color: #f0fdf4;
+}
+
+.reveal section[data-background-color="#ffb7c5"] h1,
+.reveal section[data-background-color="#ffb7c5"] h2,
+.reveal section[data-background-color="#ffb7c5"] p {
+  color: $forest-green;
+}
+
+// Tables
+.reveal table {
+  font-size: 0.75em;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.reveal table th {
+  background-color: $cherry-light;
+  color: $forest-green;
+  font-weight: 600;
+  padding: 0.4em 0.6em;
+  border-bottom: 2px solid $cherry-pink;
+}
+
+.reveal table td {
+  padding: 0.3em 0.6em;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.reveal table tr:hover td {
+  background-color: #fdf2f8;
+}
+
+// Callout boxes
+.reveal .callout {
+  font-size: 0.85em;
+  border-radius: 6px;
+}
+
+// Footer
+.reveal .footer {
+  font-size: 0.65em;
+  color: #94a3b8;
+}
+
+// Slide number
+.reveal .slide-number {
+  font-size: 0.6em;
+  color: $cherry-pink;
+}
+
+// R-Ladies branding accent
+.reveal .r-fit-text {
+  color: $cherry-dark;
+  font-weight: 700;
+}
